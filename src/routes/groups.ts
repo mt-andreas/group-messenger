@@ -1,5 +1,13 @@
 import { FastifyInstance } from 'fastify';
-import { banishUserSchema, createGroupSchema, leaveGroupSchema, manageJoinRequestSchema } from '../schemas/groupSchema.js';
+import {
+  banishUserSchema,
+  createGroupSchema,
+  groupIdParamSchema,
+  leaveGroupSchema,
+  manageJoinRequestSchema,
+  promoteAdminSchema,
+  transferOwnershipSchema,
+} from '../schemas/groupSchema.js';
 import { tryCatch } from '../utils/tryCatch.js';
 import prisma from '../utils/prisma.js';
 import { joinGroupSchema } from '../schemas/groupSchema.js';
@@ -346,6 +354,172 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       return reply.send({
         message: permanent ? 'User has been permanently banned from the group' : 'User has been kicked and cannot rejoin for 24 hours',
       });
+    }),
+  );
+  fastify.post(
+    '/api/groups/:id/promote',
+    {
+      preHandler: [fastify.authenticate],
+      schema: promoteAdminSchema,
+    },
+    tryCatch(async (request, reply) => {
+      const { id: groupId } = request.params as { id: string };
+      const { userId } = request.body as { userId: string };
+      const actingUserId = (request.user as User).id;
+
+      const group = await prisma.group.findUnique({ where: { id: groupId } });
+      if (!group || group.ownerId !== actingUserId) {
+        return reply.status(403).send({ message: 'Only the owner can promote members to admin' });
+      }
+
+      const member = await prisma.groupMember.findUnique({
+        where: { userId_groupId: { userId, groupId } },
+      });
+
+      if (!member) {
+        return reply.status(404).send({ message: 'User is not a member of the group' });
+      }
+
+      if (member.role === GroupRole.OWNER || member.role === GroupRole.ADMIN) {
+        return reply.status(400).send({ message: 'User is already an admin or owner' });
+      }
+
+      await prisma.groupMember.update({
+        where: { userId_groupId: { userId, groupId } },
+        data: { role: GroupRole.ADMIN },
+      });
+
+      return reply.send({ message: 'User promoted to admin' });
+    }),
+  );
+
+  fastify.post(
+    '/api/groups/:id/transfer-ownership',
+    {
+      preHandler: [fastify.authenticate],
+      schema: transferOwnershipSchema,
+    },
+    tryCatch(async (request, reply) => {
+      const { id: groupId } = request.params as { id: string };
+      const { userId } = request.body as { userId: string };
+      const actingUserId = (request.user as User).id;
+
+      const group = await prisma.group.findUnique({ where: { id: groupId } });
+      if (!group || group.ownerId !== actingUserId) {
+        return reply.status(403).send({ message: 'Only the owner can transfer ownership' });
+      }
+
+      const target = await prisma.groupMember.findUnique({
+        where: { userId_groupId: { userId, groupId } },
+      });
+
+      if (!target) {
+        return reply.status(404).send({ message: 'Target user is not a group member' });
+      }
+
+      await prisma.$transaction([
+        prisma.group.update({
+          where: { id: groupId },
+          data: { ownerId: userId },
+        }),
+        prisma.groupMember.update({
+          where: { userId_groupId: { userId, groupId } },
+          data: { role: GroupRole.OWNER },
+        }),
+        prisma.groupMember.update({
+          where: { userId_groupId: { userId: actingUserId, groupId } },
+          data: { role: GroupRole.ADMIN },
+        }),
+      ]);
+
+      return reply.send({ message: 'Ownership transferred successfully' });
+    }),
+  );
+
+  fastify.get(
+    '/api/groups/:id/members',
+    {
+      preHandler: [fastify.authenticate],
+      schema: groupIdParamSchema,
+    },
+    tryCatch(async (request, reply) => {
+      const { id: groupId } = request.params as { id: string };
+      const userId = (request.user as any).id;
+
+      const membership = await prisma.groupMember.findUnique({
+        where: {
+          userId_groupId: { userId, groupId },
+        },
+      });
+
+      if (!membership) {
+        return reply.status(403).send({ message: 'You are not a member of this group' });
+      }
+
+      const members = await prisma.groupMember.findMany({
+        where: { groupId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      });
+
+      return reply.send(
+        members.map((m) => ({
+          userId: m.userId,
+          role: m.role,
+          joinedAt: m.joinedAt,
+          user: m.user,
+        })),
+      );
+    }),
+  );
+
+  fastify.get(
+    '/api/groups/:id/requests',
+    {
+      preHandler: [fastify.authenticate],
+      schema: groupIdParamSchema,
+    },
+    tryCatch(async (request, reply) => {
+      const { id: groupId } = request.params as { id: string };
+      const userId = (request.user as any).id;
+
+      await ensureAdminOrOwner(userId, groupId);
+
+      const requests = await prisma.joinRequest.findMany({
+        where: {
+          groupId,
+          status: GroupStatus.PENDING,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      });
+
+      return reply.send(
+        requests.map((r) => ({
+          userId: r.userId,
+          createdAt: r.createdAt,
+          user: r.user,
+        })),
+      );
     }),
   );
 }

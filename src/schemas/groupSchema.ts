@@ -66,3 +66,32 @@ export const banishUserSchema = {
     required: ['userId'],
   },
 };
+
+export const promoteAdminSchema = {
+  params: {
+    type: 'object',
+    properties: {
+      id: { type: 'string' },
+    },
+    required: ['id'],
+  },
+  body: {
+    type: 'object',
+    properties: {
+      userId: { type: 'string' },
+    },
+    required: ['userId'],
+  },
+};
+
+export const transferOwnershipSchema = promoteAdminSchema;
+
+export const groupIdParamSchema = {
+  params: {
+    type: 'object',
+    properties: {
+      id: { type: 'string' },
+    },
+    required: ['id'],
+  },
+};
