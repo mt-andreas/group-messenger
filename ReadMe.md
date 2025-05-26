@@ -47,6 +47,8 @@ to view the Swagger UI documentation.
 
 To start the app with PostgreSQL in containers:
 
+First ensuer you build the app with yarn build
+
 ```bash
 docker-compose up --build
 ```

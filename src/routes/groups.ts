@@ -12,7 +12,7 @@ import { tryCatch } from '../utils/tryCatch.js';
 import prisma from '../utils/prisma.js';
 import { joinGroupSchema } from '../schemas/groupSchema.js';
 import { addHours, isBefore } from 'date-fns';
-import { GroupRole, GroupStatus, GroupType } from 'types/groups.js';
+import { GroupRole, GroupStatus, GroupType } from '../types/groups.js';
 
 type User = {
   id: string;
