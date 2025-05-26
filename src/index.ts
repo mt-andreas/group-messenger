@@ -3,6 +3,7 @@ import Fastify from "fastify";
 import fastifySwagger from "@fastify/swagger";
 import fastifySwaggerUi from "@fastify/swagger-ui";
 import jwtPlugin from "./plugins/jwt.js";
+import auth from "./routes/auth.js";
 const app = Fastify({ logger: true });
 
 // Swagger setup
@@ -20,6 +21,7 @@ await app.register(fastifySwaggerUi, {
 
 // Load routes, plugins, etc. here
 await app.register(jwtPlugin);
+await app.register(auth, { prefix: "/auth" });
 
 app.listen({ port: 3000 }, (err) => {
   if (err) {
