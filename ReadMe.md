@@ -50,3 +50,87 @@ To start the app with PostgreSQL in containers:
 ```bash
 docker-compose up --build
 ```
+
+### Groups:
+
+## Task 1: Create Group
+
+📌 Endpoint
+
+POST /api/groups
+
+🔐 Auth Required: Yes (user must be logged in)
+
+📥 Request Body
+{
+"name": "Solana Enthusiasts",
+"type": "PRIVATE",
+"maxMembers": 100
+}
+
+🧠 Logic
+• Must validate input
+• Must ensure maxMembers >= 2
+• Create a Group with logged-in user as ownerId
+• Add owner as GroupMember with role OWNER
+
+## Task 2: Join Group
+
+📌 Endpoint
+
+POST /api/groups/:id/join
+
+🔐 Auth Required: Yes
+
+🧠 Logic
+• For PUBLIC groups:
+• Immediately add user as MEMBER
+• For PRIVATE groups:
+• Create a JoinRequest with status PENDING
+• Check GroupBan for lockout enforcement
+• Prevent joining if already a member
+
+## ✅ Task 3: Leave Group
+
+📌 Endpoint
+
+POST /api/groups/:id/leave
+
+🧠 Logic
+• Remove GroupMember
+• Add a GroupBan with timestamp
+• OWNER cannot leave unless they’ve transferred ownership
+
+## Task 4: Approve/Reject Join Requests
+
+📌 Endpoints
+• POST /api/groups/:id/approve
+• POST /api/groups/:id/reject
+
+🧠 Logic
+• Only OWNER or ADMIN can approve/reject
+• Change JoinRequest.status to APPROVED or REJECTED
+• Add user to GroupMember if approved
+
+## Task 5: Promote to Admin / Transfer Ownership
+
+📌 Endpoints
+• POST /api/groups/:id/promote
+• POST /api/groups/:id/transfer-ownership
+
+## Task 6: Kick / Banish User
+
+📌 Endpoint
+
+POST /api/groups/:id/banish
+
+🧠 Logic
+• Only OWNER or ADMIN can ban
+• Add GroupBan
+• Remove from GroupMember
+
+## Task 7: List Group Members & Join Requests
+
+📌 Endpoints
+• GET /api/groups/:id/members
+• GET /api/groups/:id/requests
