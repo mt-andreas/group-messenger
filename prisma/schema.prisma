@@ -14,39 +14,39 @@ datasource db {
 }
 
 model User {
-  id          Int           @id @default(autoincrement())
+  id          String        @id @default(uuid())
   email       String        @unique
   password    String
   firstName   String
   lastName    String
   createdAt   DateTime      @default(now())
-  Group       Group[]
-  GroupMember GroupMember[]
+  groups      Group[]       @relation("GroupOwner")
+  members     GroupMember[]
   JoinRequest JoinRequest[]
   GroupBan    GroupBan[]
 }
 
 model Group {
-  id         Int       @id @default(autoincrement())
+  id         String    @id @default(uuid())
   name       String
   type       GroupType
-  ownerId    Int
+  ownerId    String
   maxMembers Int
   createdAt  DateTime  @default(now())
 
-  owner    User          @relation(fields: [ownerId], references: [id])
+  owner    User          @relation("GroupOwner", fields: [ownerId], references: [id])
   members  GroupMember[]
   requests JoinRequest[]
   GroupBan GroupBan[]
 }
 
 model GroupMember {
-  id         Int       @id @default(autoincrement())
-  userId     Int
-  groupId    Int
+  id         String    @id @default(uuid())
+  userId     String
+  groupId    String
   role       GroupRole @default(MEMBER)
   joinedAt   DateTime  @default(now())
-  banishedAt DateTime? // for future ban history tracking
+  banishedAt DateTime?
 
   user  User  @relation(fields: [userId], references: [id])
   group Group @relation(fields: [groupId], references: [id])
@@ -55,9 +55,9 @@ model GroupMember {
 }
 
 model JoinRequest {
-  id        Int           @id @default(autoincrement())
-  userId    Int
-  groupId   Int
+  id        String        @id @default(uuid())
+  userId    String
+  groupId   String
   status    RequestStatus @default(PENDING)
   createdAt DateTime      @default(now())
 
@@ -68,14 +68,14 @@ model JoinRequest {
 }
 
 model GroupBan {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  groupId   Int
+  id        String   @id @default(uuid())
+  userId    String
+  groupId   String
   permanent Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id])
-  group     Group    @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+  group Group @relation(fields: [groupId], references: [id])
 
   @@unique([userId, groupId])
 }
