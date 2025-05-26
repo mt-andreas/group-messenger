@@ -14,10 +14,84 @@ datasource db {
 }
 
 model User {
+  id          Int           @id @default(autoincrement())
+  email       String        @unique
+  password    String
+  firstName   String
+  lastName    String
+  createdAt   DateTime      @default(now())
+  Group       Group[]
+  GroupMember GroupMember[]
+  JoinRequest JoinRequest[]
+  GroupBan    GroupBan[]
+}
+
+model Group {
+  id         Int       @id @default(autoincrement())
+  name       String
+  type       GroupType
+  ownerId    Int
+  maxMembers Int
+  createdAt  DateTime  @default(now())
+
+  owner    User          @relation(fields: [ownerId], references: [id])
+  members  GroupMember[]
+  requests JoinRequest[]
+  GroupBan GroupBan[]
+}
+
+model GroupMember {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  groupId    Int
+  role       GroupRole @default(MEMBER)
+  joinedAt   DateTime  @default(now())
+  banishedAt DateTime? // for future ban history tracking
+
+  user  User  @relation(fields: [userId], references: [id])
+  group Group @relation(fields: [groupId], references: [id])
+
+  @@unique([userId, groupId])
+}
+
+model JoinRequest {
+  id        Int           @id @default(autoincrement())
+  userId    Int
+  groupId   Int
+  status    RequestStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  group Group @relation(fields: [groupId], references: [id])
+
+  @@unique([userId, groupId])
+}
+
+model GroupBan {
   id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
+  userId    Int
+  groupId   Int
   createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  group Group @relation(fields: [groupId], references: [id])
+
+  @@unique([userId, groupId])
+}
+
+enum GroupType {
+  PUBLIC
+  PRIVATE
+}
+
+enum GroupRole {
+  MEMBER
+  ADMIN
+  OWNER
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
