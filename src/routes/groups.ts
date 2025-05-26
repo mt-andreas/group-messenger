@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { createGroupSchema } from '../schemas/groupSchema.js';
+import { createGroupSchema, leaveGroupSchema } from '../schemas/groupSchema.js';
 import { tryCatch } from '../utils/tryCatch.js';
 import prisma from '../utils/prisma.js';
 import { joinGroupSchema } from '../schemas/groupSchema.js';
@@ -16,6 +16,25 @@ enum GroupRole {
   MEMBER = 'MEMBER',
 }
 
+enum GroupStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  BANNED = 'BANNED',
+  PENDING = 'PENDING',
+  REJECTED = 'REJECTED',
+  ACCEPTED = 'ACCEPTED',
+  BLOCKED = 'BLOCKED',
+  UNBLOCKED = 'UNBLOCKED',
+  DELETED = 'DELETED',
+}
+
+type User = {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+};
+
 export default async function groupRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/api/groups',
@@ -30,7 +49,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         maxMembers: number;
       };
 
-      const user = request.user as { id: number };
+      const user = request.user as User;
 
       const group = await prisma.group.create({
         data: {
@@ -68,8 +87,8 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     },
     tryCatch(async (request, reply) => {
       const { id } = request.params as { id: string };
-      const groupId = parseInt(id);
-      const userId = (request.user as any).id;
+      const groupId = id;
+      const userId = (request.user as User).id;
 
       const group = await prisma.group.findUnique({
         where: { id: groupId },
@@ -118,12 +137,12 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         });
       }
 
-      if (group.type === 'PUBLIC') {
+      if (group.type === GroupType.PUBLIC) {
         await prisma.groupMember.create({
           data: {
             userId,
             groupId,
-            role: 'MEMBER',
+            role: GroupRole.MEMBER,
           },
         });
 
@@ -135,7 +154,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
           },
         });
 
-        if (existingRequest && existingRequest.status === 'PENDING') {
+        if (existingRequest && existingRequest.status === GroupStatus.PENDING) {
           return reply.status(409).send({ message: 'Join request already pending' });
         }
 
@@ -144,17 +163,71 @@ export default async function groupRoutes(fastify: FastifyInstance) {
             userId_groupId: { userId, groupId },
           },
           update: {
-            status: 'PENDING',
+            status: GroupStatus.PENDING,
           },
           create: {
             userId,
             groupId,
-            status: 'PENDING',
+            status: GroupStatus.PENDING,
           },
         });
 
         return reply.send({ message: 'Join request submitted' });
       }
+    }),
+  );
+
+  fastify.post(
+    '/api/groups/:id/leave',
+    {
+      preHandler: [fastify.authenticate],
+      schema: leaveGroupSchema,
+    },
+    tryCatch(async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const groupId = id;
+      const userId = (request.user as User).id;
+
+      const membership = await prisma.groupMember.findUnique({
+        where: {
+          userId_groupId: { userId, groupId },
+        },
+      });
+
+      if (!membership) {
+        return reply.status(403).send({ message: 'You are not a member of this group' });
+      }
+
+      if (membership.role === GroupRole.OWNER) {
+        return reply.status(400).send({
+          message: 'You must transfer ownership before leaving the group',
+        });
+      }
+
+      // Delete from GroupMember
+      await prisma.groupMember.delete({
+        where: {
+          userId_groupId: { userId, groupId },
+        },
+      });
+
+      // Add temporary 24h lockout
+      await prisma.groupBan.upsert({
+        where: {
+          userId_groupId: { userId, groupId },
+        },
+        update: {
+          createdAt: new Date(),
+          permanent: false,
+        },
+        create: {
+          userId,
+          groupId,
+          permanent: false,
+        },
+      });
+
+      return reply.send({ message: 'You have left the group and must wait 24h to rejoin' });
     }),
   );
 }

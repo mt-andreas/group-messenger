@@ -19,3 +19,22 @@ export const joinGroupSchema = {
     required: ['id'],
   },
 };
+
+export const leaveGroupSchema = {
+  params: {
+    type: 'object',
+    properties: {
+      id: { type: 'string' },
+    },
+    required: ['id'],
+  },
+};
+export const getGroupSchema = {
+  params: {
+    type: 'object',
+    properties: {
+      id: { type: 'string' },
+    },
+    required: ['id'],
+  },
+};
