@@ -1,0 +1,23 @@
+export enum GroupType {
+  PUBLIC = 'PUBLIC',
+  PRIVATE = 'PRIVATE',
+}
+
+export enum GroupRole {
+  OWNER = 'OWNER',
+  ADMIN = 'ADMIN',
+  MEMBER = 'MEMBER',
+}
+
+export enum GroupStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  APPROVED = 'APPROVED',
+  BANNED = 'BANNED',
+  PENDING = 'PENDING',
+  REJECTED = 'REJECTED',
+  ACCEPTED = 'ACCEPTED',
+  BLOCKED = 'BLOCKED',
+  UNBLOCKED = 'UNBLOCKED',
+  DELETED = 'DELETED',
+}

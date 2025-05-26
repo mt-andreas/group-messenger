@@ -1,32 +1,10 @@
 import { FastifyInstance } from 'fastify';
-import { createGroupSchema, leaveGroupSchema } from '../schemas/groupSchema.js';
+import { banishUserSchema, createGroupSchema, leaveGroupSchema, manageJoinRequestSchema } from '../schemas/groupSchema.js';
 import { tryCatch } from '../utils/tryCatch.js';
 import prisma from '../utils/prisma.js';
 import { joinGroupSchema } from '../schemas/groupSchema.js';
 import { addHours, isBefore } from 'date-fns';
-
-enum GroupType {
-  PUBLIC = 'PUBLIC',
-  PRIVATE = 'PRIVATE',
-}
-
-enum GroupRole {
-  OWNER = 'OWNER',
-  ADMIN = 'ADMIN',
-  MEMBER = 'MEMBER',
-}
-
-enum GroupStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  BANNED = 'BANNED',
-  PENDING = 'PENDING',
-  REJECTED = 'REJECTED',
-  ACCEPTED = 'ACCEPTED',
-  BLOCKED = 'BLOCKED',
-  UNBLOCKED = 'UNBLOCKED',
-  DELETED = 'DELETED',
-}
+import { GroupRole, GroupStatus, GroupType } from 'types/groups.js';
 
 type User = {
   id: string;
@@ -34,6 +12,21 @@ type User = {
   firstName: string;
   lastName: string;
 };
+
+async function ensureAdminOrOwner(userId: string, groupId: string) {
+  const member = await prisma.groupMember.findUnique({
+    where: {
+      userId_groupId: { userId, groupId },
+    },
+  });
+
+  if (!member || (member.role !== 'OWNER' && member.role !== 'ADMIN')) {
+    throw {
+      statusCode: 403,
+      message: 'You must be an admin or owner to manage join requests',
+    };
+  }
+}
 
 export default async function groupRoutes(fastify: FastifyInstance) {
   fastify.post(
@@ -184,8 +177,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       schema: leaveGroupSchema,
     },
     tryCatch(async (request, reply) => {
-      const { id } = request.params as { id: string };
-      const groupId = id;
+      const { id: groupId } = request.params as { id: string };
       const userId = (request.user as User).id;
 
       const membership = await prisma.groupMember.findUnique({
@@ -228,6 +220,132 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       return reply.send({ message: 'You have left the group and must wait 24h to rejoin' });
+    }),
+  );
+
+  fastify.post(
+    '/api/groups/:id/approve',
+    {
+      preHandler: [fastify.authenticate],
+      schema: manageJoinRequestSchema,
+    },
+    tryCatch(async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const groupId = id;
+      const { userId } = request.body as { userId: string };
+      const actingUserId = (request.user as User).id;
+
+      await ensureAdminOrOwner(actingUserId, groupId);
+
+      const requestExists = await prisma.joinRequest.findUnique({
+        where: { userId_groupId: { userId, groupId } },
+      });
+
+      if (!requestExists || requestExists.status !== GroupStatus.PENDING) {
+        return reply.status(404).send({ message: 'No pending request found' });
+      }
+
+      await prisma.$transaction([
+        prisma.joinRequest.update({
+          where: { userId_groupId: { userId, groupId } },
+          data: { status: GroupStatus.APPROVED },
+        }),
+        prisma.groupMember.create({
+          data: {
+            userId,
+            groupId,
+            role: GroupRole.MEMBER,
+          },
+        }),
+      ]);
+
+      return reply.send({ message: 'Join request approved' });
+    }),
+  );
+
+  fastify.post(
+    '/api/groups/:id/reject',
+    {
+      preHandler: [fastify.authenticate],
+      schema: manageJoinRequestSchema,
+    },
+    tryCatch(async (request, reply) => {
+      const { id: groupId } = request.params as { id: string };
+      const { userId } = request.body as { userId: string };
+      const actingUserId = (request.user as User).id;
+
+      await ensureAdminOrOwner(actingUserId, groupId);
+
+      const requestExists = await prisma.joinRequest.findUnique({
+        where: { userId_groupId: { userId, groupId } },
+      });
+
+      if (!requestExists || requestExists.status !== GroupStatus.PENDING) {
+        return reply.status(404).send({ message: 'No pending request found' });
+      }
+
+      await prisma.joinRequest.update({
+        where: { userId_groupId: { userId, groupId } },
+        data: { status: GroupStatus.REJECTED },
+      });
+
+      return reply.send({ message: 'Join request rejected' });
+    }),
+  );
+
+  fastify.post(
+    '/api/groups/:id/ban',
+    {
+      preHandler: [fastify.authenticate],
+      schema: banishUserSchema,
+    },
+    tryCatch(async (request, reply) => {
+      const { id: groupId } = request.params as { id: string };
+      const { userId, permanent } = request.body as { userId: string; permanent?: boolean };
+      const actingUserId = (request.user as User).id;
+
+      // Ensure acting user is OWNER or ADMIN
+      await ensureAdminOrOwner(actingUserId, groupId);
+
+      const target = await prisma.groupMember.findUnique({
+        where: {
+          userId_groupId: { userId, groupId },
+        },
+      });
+
+      if (!target) {
+        return reply.status(404).send({ message: 'Target user is not a member of this group' });
+      }
+
+      if (target.role === GroupRole.OWNER) {
+        return reply.status(403).send({ message: 'You cannot ban the owner of the group' });
+      }
+
+      await prisma.$transaction([
+        prisma.groupMember.delete({
+          where: {
+            userId_groupId: { userId, groupId },
+          },
+        }),
+        prisma.groupBan.upsert({
+          where: {
+            userId_groupId: { userId, groupId },
+          },
+          update: {
+            permanent: permanent ?? false,
+            createdAt: new Date(),
+          },
+          create: {
+            userId,
+            groupId,
+            permanent: permanent ?? false,
+          },
+        }),
+      ]);
+
+      return reply.send({
+        message: permanent ? 'User has been permanently banned from the group' : 'User has been kicked and cannot rejoin for 24 hours',
+      });
     }),
   );
 }

@@ -1,10 +1,12 @@
+import { GroupType } from 'types/groups';
+
 export const createGroupSchema = {
   body: {
     type: 'object',
     required: ['name', 'type', 'maxMembers'],
     properties: {
       name: { type: 'string', minLength: 3 },
-      type: { type: 'string', enum: ['PUBLIC', 'PRIVATE'] },
+      type: { type: 'string', enum: [GroupType.PRIVATE, GroupType.PUBLIC] },
       maxMembers: { type: 'integer', minimum: 2 },
     },
   },
@@ -29,12 +31,38 @@ export const leaveGroupSchema = {
     required: ['id'],
   },
 };
-export const getGroupSchema = {
+
+export const manageJoinRequestSchema = {
   params: {
     type: 'object',
     properties: {
-      id: { type: 'string' },
+      id: { type: 'string' }, // groupId
     },
     required: ['id'],
+  },
+  body: {
+    type: 'object',
+    properties: {
+      userId: { type: 'string' },
+    },
+    required: ['userId'],
+  },
+};
+
+export const banishUserSchema = {
+  params: {
+    type: 'object',
+    properties: {
+      id: { type: 'string' }, // groupId
+    },
+    required: ['id'],
+  },
+  body: {
+    type: 'object',
+    properties: {
+      userId: { type: 'string' },
+      permanent: { type: 'boolean' },
+    },
+    required: ['userId'],
   },
 };
