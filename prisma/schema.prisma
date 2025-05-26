@@ -71,10 +71,11 @@ model GroupBan {
   id        Int      @id @default(autoincrement())
   userId    Int
   groupId   Int
+  permanent Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user  User  @relation(fields: [userId], references: [id])
-  group Group @relation(fields: [groupId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  group     Group    @relation(fields: [groupId], references: [id])
 
   @@unique([userId, groupId])
 }
