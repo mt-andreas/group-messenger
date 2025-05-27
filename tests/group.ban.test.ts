@@ -1,7 +1,7 @@
 import app from "../src/index";
 import supertest from "supertest";
 import { describe, beforeAll, afterAll, expect, it } from "vitest";
-import { GroupType } from "../src/types/groups.js";
+import { GroupRole, GroupType } from "../src/types/groups.js";
 
 let ownerToken: string;
 let adminToken: string;
@@ -83,7 +83,7 @@ describe("Group Banish Logic", () => {
 
     const members = await supertest(app.server).get(`/api/groups/${groupId}/members`).set("Authorization", `Bearer ${ownerToken}`);
 
-    const ownerMember = members.body.find((m: any) => m.role === "OWNER");
+    const ownerMember = members.body.find((m: any) => m.role === GroupRole.OWNER);
 
     const res2 = await supertest(app.server)
       .post(`/api/groups/${groupId}/ban`)
