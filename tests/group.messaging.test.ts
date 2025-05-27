@@ -78,6 +78,8 @@ describe("WebSocket Messaging", () => {
       });
     });
 
+    await new Promise((r) => setTimeout(r, 100));
+
     // 3. Send message from owner
     wsOwner.send(
       JSON.stringify({
