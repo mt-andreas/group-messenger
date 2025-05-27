@@ -24,11 +24,14 @@
     "@eslint/js": "^9.27.0",
     "@types/bcrypt": "^5.0.2",
     "@types/node": "^22.15.21",
+    "@types/supertest": "^6.0.3",
     "eslint": "^9.27.0",
+    "supertest": "^7.1.1",
     "ts-node-dev": "^2.0.0",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.32.1"
+    "typescript-eslint": "^8.32.1",
+    "vitest": "^3.1.4"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -39,6 +42,6 @@
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:generate": "npx prisma generate",
     "prisma:studio": "npx prisma studio",
-    "test": "echo \"Add your test runner here (e.g. vitest, jest, supertest)\""
+    "test": "NODE_ENV=test vitest"
   }
 }

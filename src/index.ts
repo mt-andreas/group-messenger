@@ -40,9 +40,13 @@ await app.register(jwtPlugin);
 await app.register(auth, { prefix: "/auth" });
 await app.register(groupRoutes);
 
-app.listen({ port: 3000, host: "0.0.0.0" }, (err) => {
-  if (err) {
-    app.log.error(err);
-    process.exit(1);
-  }
-});
+if (process.env.NODE_ENV !== "test") {
+  app.listen({ port: 3000, host: "0.0.0.0" }, (err) => {
+    if (err) {
+      app.log.error(err);
+      process.exit(1);
+    }
+  });
+}
+
+export default app;
