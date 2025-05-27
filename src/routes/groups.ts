@@ -38,7 +38,7 @@ async function ensureAdminOrOwner(userId: string, groupId: string) {
 
 export default async function groupRoutes(fastify: FastifyInstance) {
   fastify.post(
-    "/api/groups",
+    "/groups",
     {
       preHandler: [fastify.authenticate],
       schema: createGroupSchema,
@@ -81,7 +81,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
   );
 
   fastify.post(
-    "/api/groups/:id/join",
+    "/groups/:id/join",
     {
       preHandler: [fastify.authenticate],
       schema: joinGroupSchema,
@@ -179,7 +179,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
   );
 
   fastify.post(
-    "/api/groups/:id/leave",
+    "/groups/:id/leave",
     {
       preHandler: [fastify.authenticate],
       schema: leaveGroupSchema,
@@ -232,7 +232,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
   );
 
   fastify.post(
-    "/api/groups/:id/approve",
+    "/groups/:id/approve",
     {
       preHandler: [fastify.authenticate],
       schema: manageJoinRequestSchema,
@@ -272,7 +272,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
   );
 
   fastify.post(
-    "/api/groups/:id/reject",
+    "/groups/:id/reject",
     {
       preHandler: [fastify.authenticate],
       schema: manageJoinRequestSchema,
@@ -302,7 +302,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
   );
 
   fastify.post(
-    "/api/groups/:id/ban",
+    "/groups/:id/ban",
     {
       preHandler: [fastify.authenticate],
       schema: banishUserSchema,
@@ -357,7 +357,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     }),
   );
   fastify.post(
-    "/api/groups/:id/promote",
+    "/groups/:id/promote",
     {
       preHandler: [fastify.authenticate],
       schema: promoteAdminSchema,
@@ -394,7 +394,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
   );
 
   fastify.post(
-    "/api/groups/:id/transfer-ownership",
+    "/groups/:id/transfer-ownership",
     {
       preHandler: [fastify.authenticate],
       schema: transferOwnershipSchema,
@@ -437,7 +437,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
   );
 
   fastify.get(
-    "/api/groups/:id/members",
+    "/groups/:id/members",
     {
       preHandler: [fastify.authenticate],
       schema: groupIdParamSchema,
@@ -482,7 +482,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
   );
 
   fastify.get(
-    "/api/groups/:id/requests",
+    "/groups/:id/requests",
     {
       preHandler: [fastify.authenticate],
       schema: groupIdParamSchema,

@@ -136,3 +136,15 @@ POST /api/groups/:id/banish
 📌 Endpoints
 • GET /api/groups/:id/members
 • GET /api/groups/:id/requests
+
+### Tests
+
+tests/
+├── auth.test.ts # Register & login
+├── group.create.test.ts # Create group
+├── group.join.test.ts # Join group (public/private, lockout, ban)
+├── group.leave.test.ts # Leave group
+├── group.approve.test.ts # Approve/Reject join
+├── group.banish.test.ts # Kick/Ban user
+├── group.promote.test.ts # Promote & transfer ownership
+├── group.view.test.ts # Get members, requests

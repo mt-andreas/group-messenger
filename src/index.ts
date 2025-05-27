@@ -37,8 +37,8 @@ await app.register(fastifySwaggerUi, {
 
 // Load routes, plugins, etc. here
 await app.register(jwtPlugin);
-await app.register(auth, { prefix: "/auth" });
-await app.register(groupRoutes);
+await app.register(auth, { prefix: "/api/auth" });
+await app.register(groupRoutes, { prefix: "/api" });
 
 if (process.env.NODE_ENV !== "test") {
   app.listen({ port: 3000, host: "0.0.0.0" }, (err) => {
