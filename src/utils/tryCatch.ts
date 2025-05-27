@@ -1,10 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { Prisma } from "@prisma/client";
 
-type AsyncHandler = (
-  request: FastifyRequest,
-  reply: FastifyReply
-) => Promise<any>;
+type AsyncHandler = (request: FastifyRequest, reply: FastifyReply) => Promise<any>;
 
 export function tryCatch(handler: AsyncHandler): AsyncHandler {
   return async function (request, reply) {
@@ -16,9 +13,7 @@ export function tryCatch(handler: AsyncHandler): AsyncHandler {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         switch (error.code) {
           case "P2002":
-            return reply
-              .status(409)
-              .send({ message: "Record already exists." });
+            return reply.status(409).send({ message: "Record already exists." });
           case "P2025":
             return reply.status(404).send({ message: "Record not found." });
           default:

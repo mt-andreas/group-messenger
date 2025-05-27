@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance } from "fastify";
 import {
   banishUserSchema,
   createGroupSchema,
@@ -7,12 +7,12 @@ import {
   manageJoinRequestSchema,
   promoteAdminSchema,
   transferOwnershipSchema,
-} from '../schemas/groupSchema.js';
-import { tryCatch } from '../utils/tryCatch.js';
-import prisma from '../utils/prisma.js';
-import { joinGroupSchema } from '../schemas/groupSchema.js';
-import { addHours, isBefore } from 'date-fns';
-import { GroupRole, GroupStatus, GroupType } from '../types/groups.js';
+} from "../schemas/groupSchema.js";
+import { tryCatch } from "../utils/tryCatch.js";
+import prisma from "../utils/prisma.js";
+import { joinGroupSchema } from "../schemas/groupSchema.js";
+import { addHours, isBefore } from "date-fns";
+import { GroupRole, GroupStatus, GroupType } from "../types/groups.js";
 
 type User = {
   id: string;
@@ -28,17 +28,17 @@ async function ensureAdminOrOwner(userId: string, groupId: string) {
     },
   });
 
-  if (!member || (member.role !== 'OWNER' && member.role !== 'ADMIN')) {
+  if (!member || (member.role !== "OWNER" && member.role !== "ADMIN")) {
     throw {
       statusCode: 403,
-      message: 'You must be an admin or owner to manage join requests',
+      message: "You must be an admin or owner to manage join requests",
     };
   }
 }
 
 export default async function groupRoutes(fastify: FastifyInstance) {
   fastify.post(
-    '/api/groups',
+    "/api/groups",
     {
       preHandler: [fastify.authenticate],
       schema: createGroupSchema,
@@ -81,7 +81,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
   );
 
   fastify.post(
-    '/api/groups/:id/join',
+    "/api/groups/:id/join",
     {
       preHandler: [fastify.authenticate],
       schema: joinGroupSchema,
@@ -96,7 +96,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         include: { members: true },
       });
 
-      if (!group) return reply.status(404).send({ message: 'Group not found' });
+      if (!group) return reply.status(404).send({ message: "Group not found" });
 
       const isMember = await prisma.groupMember.findUnique({
         where: {
@@ -105,7 +105,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (isMember) {
-        return reply.status(400).send({ message: 'Already a member of this group' });
+        return reply.status(400).send({ message: "Already a member of this group" });
       }
 
       const ban = await prisma.groupBan.findUnique({
@@ -117,7 +117,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       if (ban) {
         if (ban.permanent) {
           return reply.status(403).send({
-            message: 'You are permanently banned from this group',
+            message: "You are permanently banned from this group",
           });
         }
 
@@ -125,7 +125,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
 
         if (isBefore(new Date(), lockoutEnds)) {
           return reply.status(403).send({
-            message: 'You must wait 24 hours before rejoining this group',
+            message: "You must wait 24 hours before rejoining this group",
             retryAt: lockoutEnds,
           });
         }
@@ -147,7 +147,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
           },
         });
 
-        return reply.send({ message: 'Successfully joined group' });
+        return reply.send({ message: "Successfully joined group" });
       } else {
         const existingRequest = await prisma.joinRequest.findUnique({
           where: {
@@ -156,7 +156,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         });
 
         if (existingRequest && existingRequest.status === GroupStatus.PENDING) {
-          return reply.status(409).send({ message: 'Join request already pending' });
+          return reply.status(409).send({ message: "Join request already pending" });
         }
 
         await prisma.joinRequest.upsert({
@@ -173,13 +173,13 @@ export default async function groupRoutes(fastify: FastifyInstance) {
           },
         });
 
-        return reply.send({ message: 'Join request submitted' });
+        return reply.send({ message: "Join request submitted" });
       }
     }),
   );
 
   fastify.post(
-    '/api/groups/:id/leave',
+    "/api/groups/:id/leave",
     {
       preHandler: [fastify.authenticate],
       schema: leaveGroupSchema,
@@ -195,12 +195,12 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!membership) {
-        return reply.status(403).send({ message: 'You are not a member of this group' });
+        return reply.status(403).send({ message: "You are not a member of this group" });
       }
 
       if (membership.role === GroupRole.OWNER) {
         return reply.status(400).send({
-          message: 'You must transfer ownership before leaving the group',
+          message: "You must transfer ownership before leaving the group",
         });
       }
 
@@ -227,12 +227,12 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         },
       });
 
-      return reply.send({ message: 'You have left the group and must wait 24h to rejoin' });
+      return reply.send({ message: "You have left the group and must wait 24h to rejoin" });
     }),
   );
 
   fastify.post(
-    '/api/groups/:id/approve',
+    "/api/groups/:id/approve",
     {
       preHandler: [fastify.authenticate],
       schema: manageJoinRequestSchema,
@@ -250,7 +250,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!requestExists || requestExists.status !== GroupStatus.PENDING) {
-        return reply.status(404).send({ message: 'No pending request found' });
+        return reply.status(404).send({ message: "No pending request found" });
       }
 
       await prisma.$transaction([
@@ -267,12 +267,12 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         }),
       ]);
 
-      return reply.send({ message: 'Join request approved' });
+      return reply.send({ message: "Join request approved" });
     }),
   );
 
   fastify.post(
-    '/api/groups/:id/reject',
+    "/api/groups/:id/reject",
     {
       preHandler: [fastify.authenticate],
       schema: manageJoinRequestSchema,
@@ -289,7 +289,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!requestExists || requestExists.status !== GroupStatus.PENDING) {
-        return reply.status(404).send({ message: 'No pending request found' });
+        return reply.status(404).send({ message: "No pending request found" });
       }
 
       await prisma.joinRequest.update({
@@ -297,12 +297,12 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         data: { status: GroupStatus.REJECTED },
       });
 
-      return reply.send({ message: 'Join request rejected' });
+      return reply.send({ message: "Join request rejected" });
     }),
   );
 
   fastify.post(
-    '/api/groups/:id/ban',
+    "/api/groups/:id/ban",
     {
       preHandler: [fastify.authenticate],
       schema: banishUserSchema,
@@ -322,11 +322,11 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!target) {
-        return reply.status(404).send({ message: 'Target user is not a member of this group' });
+        return reply.status(404).send({ message: "Target user is not a member of this group" });
       }
 
       if (target.role === GroupRole.OWNER) {
-        return reply.status(403).send({ message: 'You cannot ban the owner of the group' });
+        return reply.status(403).send({ message: "You cannot ban the owner of the group" });
       }
 
       await prisma.$transaction([
@@ -352,12 +352,12 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       ]);
 
       return reply.send({
-        message: permanent ? 'User has been permanently banned from the group' : 'User has been kicked and cannot rejoin for 24 hours',
+        message: permanent ? "User has been permanently banned from the group" : "User has been kicked and cannot rejoin for 24 hours",
       });
     }),
   );
   fastify.post(
-    '/api/groups/:id/promote',
+    "/api/groups/:id/promote",
     {
       preHandler: [fastify.authenticate],
       schema: promoteAdminSchema,
@@ -369,7 +369,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
 
       const group = await prisma.group.findUnique({ where: { id: groupId } });
       if (!group || group.ownerId !== actingUserId) {
-        return reply.status(403).send({ message: 'Only the owner can promote members to admin' });
+        return reply.status(403).send({ message: "Only the owner can promote members to admin" });
       }
 
       const member = await prisma.groupMember.findUnique({
@@ -377,11 +377,11 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!member) {
-        return reply.status(404).send({ message: 'User is not a member of the group' });
+        return reply.status(404).send({ message: "User is not a member of the group" });
       }
 
       if (member.role === GroupRole.OWNER || member.role === GroupRole.ADMIN) {
-        return reply.status(400).send({ message: 'User is already an admin or owner' });
+        return reply.status(400).send({ message: "User is already an admin or owner" });
       }
 
       await prisma.groupMember.update({
@@ -389,12 +389,12 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         data: { role: GroupRole.ADMIN },
       });
 
-      return reply.send({ message: 'User promoted to admin' });
+      return reply.send({ message: "User promoted to admin" });
     }),
   );
 
   fastify.post(
-    '/api/groups/:id/transfer-ownership',
+    "/api/groups/:id/transfer-ownership",
     {
       preHandler: [fastify.authenticate],
       schema: transferOwnershipSchema,
@@ -406,7 +406,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
 
       const group = await prisma.group.findUnique({ where: { id: groupId } });
       if (!group || group.ownerId !== actingUserId) {
-        return reply.status(403).send({ message: 'Only the owner can transfer ownership' });
+        return reply.status(403).send({ message: "Only the owner can transfer ownership" });
       }
 
       const target = await prisma.groupMember.findUnique({
@@ -414,7 +414,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!target) {
-        return reply.status(404).send({ message: 'Target user is not a group member' });
+        return reply.status(404).send({ message: "Target user is not a group member" });
       }
 
       await prisma.$transaction([
@@ -432,19 +432,19 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         }),
       ]);
 
-      return reply.send({ message: 'Ownership transferred successfully' });
+      return reply.send({ message: "Ownership transferred successfully" });
     }),
   );
 
   fastify.get(
-    '/api/groups/:id/members',
+    "/api/groups/:id/members",
     {
       preHandler: [fastify.authenticate],
       schema: groupIdParamSchema,
     },
     tryCatch(async (request, reply) => {
       const { id: groupId } = request.params as { id: string };
-      const userId = (request.user as any).id;
+      const userId = (request.user as User).id;
 
       const membership = await prisma.groupMember.findUnique({
         where: {
@@ -453,7 +453,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!membership) {
-        return reply.status(403).send({ message: 'You are not a member of this group' });
+        return reply.status(403).send({ message: "You are not a member of this group" });
       }
 
       const members = await prisma.groupMember.findMany({
@@ -482,14 +482,14 @@ export default async function groupRoutes(fastify: FastifyInstance) {
   );
 
   fastify.get(
-    '/api/groups/:id/requests',
+    "/api/groups/:id/requests",
     {
       preHandler: [fastify.authenticate],
       schema: groupIdParamSchema,
     },
     tryCatch(async (request, reply) => {
       const { id: groupId } = request.params as { id: string };
-      const userId = (request.user as any).id;
+      const userId = (request.user as User).id;
 
       await ensureAdminOrOwner(userId, groupId);
 
@@ -509,7 +509,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
           },
         },
         orderBy: {
-          createdAt: 'asc',
+          createdAt: "asc",
         },
       });
 

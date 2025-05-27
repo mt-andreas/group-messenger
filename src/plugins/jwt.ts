@@ -4,17 +4,14 @@ import { FastifyReply, FastifyRequest } from "fastify";
 
 export default fp(async (fastify) => {
   fastify.register(fastifyJwt, {
-    secret: process.env.JWT_SECRET || "supersecret",
+    secret: process.env.JWT_SECRET || "elletheelephant",
   });
 
-  fastify.decorate(
-    "authenticate",
-    async function (request: FastifyRequest, reply: FastifyReply) {
-      try {
-        await request.jwtVerify();
-      } catch (err) {
-        reply.send(err);
-      }
+  fastify.decorate("authenticate", async function (request: FastifyRequest, reply: FastifyReply) {
+    try {
+      await request.jwtVerify();
+    } catch (err) {
+      reply.send(err);
     }
-  );
+  });
 });

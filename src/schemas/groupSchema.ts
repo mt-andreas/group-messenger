@@ -1,86 +1,86 @@
-import { GroupType } from '../types/groups.js';
+import { GroupType } from "../types/groups.js";
 
 export const createGroupSchema = {
   body: {
-    type: 'object',
-    required: ['name', 'type', 'maxMembers'],
+    type: "object",
+    required: ["name", "type", "maxMembers"],
     properties: {
-      name: { type: 'string', minLength: 3 },
-      type: { type: 'string', enum: [GroupType.PRIVATE, GroupType.PUBLIC] },
-      maxMembers: { type: 'integer', minimum: 2 },
+      name: { type: "string", minLength: 3 },
+      type: { type: "string", enum: [GroupType.PRIVATE, GroupType.PUBLIC] },
+      maxMembers: { type: "integer", minimum: 2 },
     },
   },
 };
 
 export const joinGroupSchema = {
   params: {
-    type: 'object',
+    type: "object",
     properties: {
-      id: { type: 'string' },
+      id: { type: "string" },
     },
-    required: ['id'],
+    required: ["id"],
   },
 };
 
 export const leaveGroupSchema = {
   params: {
-    type: 'object',
+    type: "object",
     properties: {
-      id: { type: 'string' },
+      id: { type: "string" },
     },
-    required: ['id'],
+    required: ["id"],
   },
 };
 
 export const manageJoinRequestSchema = {
   params: {
-    type: 'object',
+    type: "object",
     properties: {
-      id: { type: 'string' }, // groupId
+      id: { type: "string" }, // groupId
     },
-    required: ['id'],
+    required: ["id"],
   },
   body: {
-    type: 'object',
+    type: "object",
     properties: {
-      userId: { type: 'string' },
+      userId: { type: "string" },
     },
-    required: ['userId'],
+    required: ["userId"],
   },
 };
 
 export const banishUserSchema = {
   params: {
-    type: 'object',
+    type: "object",
     properties: {
-      id: { type: 'string' }, // groupId
+      id: { type: "string" }, // groupId
     },
-    required: ['id'],
+    required: ["id"],
   },
   body: {
-    type: 'object',
+    type: "object",
     properties: {
-      userId: { type: 'string' },
-      permanent: { type: 'boolean' },
+      userId: { type: "string" },
+      permanent: { type: "boolean" },
     },
-    required: ['userId'],
+    required: ["userId"],
   },
 };
 
 export const promoteAdminSchema = {
   params: {
-    type: 'object',
+    type: "object",
     properties: {
-      id: { type: 'string' },
+      id: { type: "string" },
     },
-    required: ['id'],
+    required: ["id"],
   },
   body: {
-    type: 'object',
+    type: "object",
     properties: {
-      userId: { type: 'string' },
+      userId: { type: "string" },
     },
-    required: ['userId'],
+    required: ["userId"],
   },
 };
 
@@ -88,10 +88,10 @@ export const transferOwnershipSchema = promoteAdminSchema;
 
 export const groupIdParamSchema = {
   params: {
-    type: 'object',
+    type: "object",
     properties: {
-      id: { type: 'string' },
+      id: { type: "string" },
     },
-    required: ['id'],
+    required: ["id"],
   },
 };
