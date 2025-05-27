@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-const ENCRYPTION_KEY = crypto.randomBytes(16); // Replace with env/config in real use
+const ENCRYPTION_KEY = Buffer.from("0123456789abcdef0123456789abcdef", "hex"); // Replace with env/config in real use
 const IV_LENGTH = 16;
 
 export function encrypt(text: string): string {
