@@ -39,6 +39,8 @@ model Group {
   members  GroupMember[]
   requests JoinRequest[]
   GroupBan GroupBan[]
+
+  @@map("groups")
 }
 
 model GroupMember {
@@ -49,8 +51,8 @@ model GroupMember {
   joinedAt   DateTime  @default(now())
   banishedAt DateTime?
 
-  user  User  @relation(fields: [userId], references: [id])
-  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, groupId])
 }
@@ -62,8 +64,8 @@ model JoinRequest {
   status    RequestStatus @default(PENDING)
   createdAt DateTime      @default(now())
 
-  user  User  @relation(fields: [userId], references: [id])
-  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, groupId])
 }
@@ -75,8 +77,8 @@ model GroupBan {
   permanent Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user  User  @relation(fields: [userId], references: [id])
-  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, groupId])
 }

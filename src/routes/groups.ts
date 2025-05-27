@@ -522,4 +522,51 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       );
     }),
   );
+
+  fastify.delete(
+    "/api/groups/:id",
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        params: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+          },
+          required: ["id"],
+        },
+      },
+    },
+    tryCatch(async (request, reply) => {
+      const { id: groupId } = request.params as { id: string };
+      const userId = (request.user as any).id;
+
+      const group = await prisma.group.findUnique({
+        where: { id: groupId },
+        include: {
+          members: true,
+        },
+      });
+
+      if (!group) {
+        return reply.status(404).send({ message: "Group not found" });
+      }
+
+      if (group.ownerId !== userId) {
+        return reply.status(403).send({ message: "Only the group owner can delete this group" });
+      }
+
+      const memberCount = group.members.length;
+
+      if (memberCount > 1) {
+        return reply.status(400).send({
+          message: "You must remove all other members before deleting the group",
+        });
+      }
+
+      await prisma.group.delete({ where: { id: groupId } });
+
+      return reply.send({ message: "Group deleted successfully" });
+    }),
+  );
 }
