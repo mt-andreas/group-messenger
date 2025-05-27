@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import {
   banishUserSchema,
   createGroupSchema,
+  deleteGroupSchema,
   groupIdParamSchema,
   groupMessageSchema,
   leaveGroupSchema,
@@ -522,15 +523,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     "/groups/:id",
     {
       preHandler: [fastify.authenticate],
-      schema: {
-        params: {
-          type: "object",
-          properties: {
-            id: { type: "string" },
-          },
-          required: ["id"],
-        },
-      },
+      schema: deleteGroupSchema,
     },
     tryCatch(async (request, reply) => {
       const { id: groupId } = request.params as { id: string };

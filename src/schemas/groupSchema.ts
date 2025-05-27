@@ -112,3 +112,13 @@ export const groupMessageSchema = {
     },
   },
 };
+
+export const deleteGroupSchema = {
+  params: {
+    type: "object",
+    properties: {
+      id: { type: "string" },
+    },
+    required: ["id"],
+  },
+};
