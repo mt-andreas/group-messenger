@@ -3,6 +3,7 @@ import {
   banishUserSchema,
   createGroupSchema,
   groupIdParamSchema,
+  groupMessageSchema,
   leaveGroupSchema,
   manageJoinRequestSchema,
   promoteAdminSchema,
@@ -569,7 +570,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
   fastify.get<{
     Params: { groupId: string };
     Querystring: { cursor?: string; limit?: number };
-  }>("/groups/:groupId/messages", { preHandler: [fastify.authenticate] }, async (request, reply) => {
+  }>("/groups/:groupId/messages", { preHandler: [fastify.authenticate], schema: groupMessageSchema }, async (request, reply) => {
     const { groupId } = request.params;
     const { cursor, limit: rawLimit = 20 } = request.query;
     const limit = Number(rawLimit);

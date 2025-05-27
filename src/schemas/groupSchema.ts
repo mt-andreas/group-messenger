@@ -95,3 +95,20 @@ export const groupIdParamSchema = {
     required: ["id"],
   },
 };
+
+export const groupMessageSchema = {
+  params: {
+    type: "object",
+    properties: {
+      groupId: { type: "string", format: "uuid" },
+    },
+    required: ["groupId"],
+  },
+  querystring: {
+    type: "object",
+    properties: {
+      cursor: { type: "string", format: "uuid" },
+      limit: { type: "integer", minimum: 1 },
+    },
+  },
+};
