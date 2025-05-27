@@ -122,3 +122,20 @@ export const deleteGroupSchema = {
     required: ["id"],
   },
 };
+
+export const sendMessageSchema = {
+  params: {
+    type: "object",
+    properties: {
+      groupId: { type: "string", format: "uuid" },
+    },
+    required: ["groupId"],
+  },
+  body: {
+    type: "object",
+    properties: {
+      content: { type: "string", minLength: 1 },
+    },
+    required: ["content"],
+  },
+};

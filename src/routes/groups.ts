@@ -8,6 +8,7 @@ import {
   leaveGroupSchema,
   manageJoinRequestSchema,
   promoteAdminSchema,
+  sendMessageSchema,
   transferOwnershipSchema,
 } from "../schemas/groupSchema.js";
 import { tryCatch } from "../utils/tryCatch.js";
@@ -15,7 +16,7 @@ import prisma from "../utils/prisma.js";
 import { joinGroupSchema } from "../schemas/groupSchema.js";
 import { addHours, isBefore } from "date-fns";
 import { GroupRole, GroupStatus, GroupType, User } from "../types/groups.js";
-import { decrypt } from "../utils/encryption.js";
+import { decrypt, encrypt } from "../utils/encryption.js";
 import config from "../utils/config.js";
 
 /**
@@ -755,4 +756,44 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       nextCursor,
     };
   });
+
+  fastify.post(
+    "/groups/:groupId/messages",
+    {
+      preHandler: [fastify.authenticate],
+      schema: sendMessageSchema,
+    },
+    tryCatch(async (request, reply) => {
+      const { groupId } = request.params as { groupId: string };
+      const { content } = request.body as { content: string };
+      const userId = (request.user as User).id;
+
+      const isMember = await prisma.groupMember.findUnique({
+        where: {
+          userId_groupId: { userId, groupId },
+        },
+      });
+
+      if (!isMember) {
+        return reply.code(403).send({ message: "You are not a member of this group" });
+      }
+
+      const encrypted = encrypt(content);
+
+      const message = await prisma.groupMessage.create({
+        data: {
+          groupId,
+          senderId: userId,
+          content: encrypted,
+        },
+      });
+
+      return reply.code(201).send({
+        id: message.id,
+        from: message.senderId,
+        content,
+        timestamp: message.createdAt,
+      });
+    }),
+  );
 }
