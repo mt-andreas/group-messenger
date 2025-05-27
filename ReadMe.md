@@ -18,7 +18,7 @@ This is a Node.js backend for a secure group messaging platform supporting publi
 ### 1. Clone the repo and install dependencies
 
 git clone
-cd group-messaging-backend
+cd group-messenger
 yarn install
 
 ### 2. Set up the database
@@ -28,6 +28,7 @@ POSTGRES_USER=
 POSTGRES_PASSWORD=
 POSTGRES_DB=messenger
 DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}
+JWT_SECRET=
 
 ### 3. Set up Prisma
 
