@@ -2,6 +2,9 @@ import app from "../src/index";
 import supertest from "supertest";
 import { describe, beforeAll, afterAll, expect, it } from "vitest";
 import { GroupRole, GroupType } from "../src/types/groups.js";
+import config from "../src/utils/config.js";
+
+const { lockoutHours } = config;
 
 let ownerToken: string;
 let adminToken: string;
@@ -61,18 +64,18 @@ afterAll(async () => {
 });
 
 describe("Group Banish Logic", () => {
-  it("allows admin to kick a user (24h ban)", async () => {
+  it(`allows admin to kick a user (${lockoutHours}h ban)`, async () => {
     const res = await supertest(app.server).post(`/api/groups/${groupId}/ban`).set("Authorization", `Bearer ${adminToken}`).send({ userId: memberUserId });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.message).toMatch(/kicked.*24 hours/i);
+    expect(res.body.message).toMatch(new RegExp(`kicked.*${lockoutHours} hours`, "i"));
   });
 
   it("prevents rejoin during cooldown", async () => {
     const res = await supertest(app.server).post(`/api/groups/${groupId}/join`).set("Authorization", `Bearer ${memberToken}`);
 
     expect(res.statusCode).toBe(403);
-    expect(res.body.message).toMatch(/wait 24 hours/i);
+    expect(res.body.message).toMatch(new RegExp(`wait ${lockoutHours} hours`, "i"));
   });
 
   it("prevents banning the group owner", async () => {

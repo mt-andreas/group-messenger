@@ -16,6 +16,7 @@ import { joinGroupSchema } from "../schemas/groupSchema.js";
 import { addHours, isBefore } from "date-fns";
 import { GroupRole, GroupStatus, GroupType, User } from "../types/groups.js";
 import { decrypt } from "../utils/encryption.js";
+import config from "../utils/config.js";
 
 /**
  * Ensures the user is either an admin or owner of the group.
@@ -148,11 +149,11 @@ export default async function groupRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const lockoutEnds = addHours(ban.createdAt, 24);
+        const lockoutEnds = addHours(ban.createdAt, config.lockoutHours);
 
         if (isBefore(new Date(), lockoutEnds)) {
           return reply.status(403).send({
-            message: "You must wait 24 hours before rejoining this group",
+            message: `You must wait ${config.lockoutHours} hours before rejoining this group`,
             retryAt: lockoutEnds,
           });
         }
@@ -216,7 +217,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
    * This route allows a user to leave a group they are a member of.
    * If the user is the owner, they must transfer ownership before leaving.
    * If the user is not a member, a 403 error is returned.
-   * After leaving, the user is temporarily banned for 24 hours to prevent immediate rejoining.
+   * After leaving, the user is temporarily banned for x hours to prevent immediate rejoining.
    */
   fastify.post(
     "/groups/:id/leave",
@@ -251,7 +252,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         },
       });
 
-      // Add temporary 24h lockout
+      // Add temporary  lockout
       await prisma.groupBan.upsert({
         where: {
           userId_groupId: { userId, groupId },
@@ -267,7 +268,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         },
       });
 
-      return reply.send({ message: "You have left the group and must wait 24h to rejoin" });
+      return reply.send({ message: `You have left the group and must wait ${config.lockoutHours}h to rejoin` });
     }),
   );
 
@@ -384,8 +385,8 @@ export default async function groupRoutes(fastify: FastifyInstance) {
    * If the user is the owner of the group, a 400 error is returned.
    * If the user is banned, they are removed from the group and a ban record is created.
    * If the ban is permanent, the user cannot rejoin the group.
-   * If the ban is temporary, the user can rejoin after 24 hours.
-   * If the user is kicked, they cannot rejoin for 24 hours.
+   * If the ban is temporary, the user can rejoin after x hours.
+   * If the user is kicked, they cannot rejoin for x hours.
    */
   fastify.post(
     "/groups/:id/ban",
@@ -438,7 +439,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       ]);
 
       return reply.send({
-        message: permanent ? "User has been permanently banned from the group" : "User has been kicked and cannot rejoin for 24 hours",
+        message: permanent ? `User has been permanently banned from the group` : `User has been kicked and cannot rejoin for ${config.lockoutHours} hours`,
       });
     }),
   );

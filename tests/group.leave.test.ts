@@ -2,7 +2,8 @@ import app from "../src/index";
 import supertest from "supertest";
 import { describe, beforeAll, afterAll, expect, it } from "vitest";
 import { GroupType } from "../src/types/groups.js";
-
+import config from "../src/utils/config.js";
+const { lockoutHours } = config;
 let ownerToken: string;
 let joinerToken: string;
 let groupId: string;
@@ -67,13 +68,13 @@ describe("Group Leave Logic", () => {
     const leave = await supertest(app.server).post(`/api/groups/${groupId}/leave`).set("Authorization", `Bearer ${joinerToken}`);
 
     expect(leave.statusCode).toBe(200);
-    expect(leave.body.message).toMatch(/24h/i);
+    expect(leave.body.message).toMatch(new RegExp(`${lockoutHours}h`, "i"));
   });
 
-  it("prevents rejoining before 24h cooldown ends", async () => {
+  it(`prevents rejoining before ${lockoutHours}h cooldown ends`, async () => {
     const rejoin = await supertest(app.server).post(`/api/groups/${groupId}/join`).set("Authorization", `Bearer ${joinerToken}`);
 
     expect(rejoin.statusCode).toBe(403);
-    expect(rejoin.body.message).toMatch(/wait 24 hours/i);
+    expect(rejoin.body.message).toMatch(new RegExp(`wait ${lockoutHours} hours`, "i"));
   });
 });
