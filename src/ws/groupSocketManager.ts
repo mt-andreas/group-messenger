@@ -1,6 +1,6 @@
 import { type WebSocket } from "@fastify/websocket";
 import { Message } from "types/messages";
-import { decrypt } from "utils/encryption.js";
+import { decrypt } from "../utils/encryption.js";
 type GroupId = string;
 
 type ClientInfo = {
