@@ -524,7 +524,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
   );
 
   fastify.delete(
-    "/api/groups/:id",
+    "/groups/:id",
     {
       preHandler: [fastify.authenticate],
       schema: {
@@ -547,6 +547,8 @@ export default async function groupRoutes(fastify: FastifyInstance) {
           members: true,
         },
       });
+
+      console.log("Group to delete:", group);
 
       if (!group) {
         return reply.status(404).send({ message: "Group not found" });
