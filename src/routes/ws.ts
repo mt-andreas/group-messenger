@@ -12,6 +12,13 @@ type GroupMessagePayload = {
   content: string;
 };
 
+/**
+ * WebSocket route for group messaging.
+ * This route allows authenticated users to connect to a WebSocket for a specific group.
+ * It checks if the user is a member of the group before allowing them to send messages.
+ * Messages are encrypted before being stored in the database and broadcasted to other group members.
+ * @param fastify Fastify instance to register the WebSocket route
+ */
 export async function groupWsRoutes(fastify: FastifyInstance) {
   fastify.get(
     "/ws/groups/:groupId",

@@ -18,6 +18,16 @@ type LoginRequest = {
 };
 
 export default async function (fastify: FastifyInstance) {
+  /**
+   * Route to register a new user.
+   * Validates the request body against the registerSchema.
+   * Checks if the email is already registered.
+   * If not, hashes the password and creates a new user in the database.
+   * Returns the created user's ID and email.
+   * @route POST /register
+   * @param {RegisterRequest} request.body - The registration details.
+   * @returns {Object} - The created user's ID and email.
+   */
   fastify.post(
     "/register",
     { schema: registerSchema },
@@ -36,6 +46,15 @@ export default async function (fastify: FastifyInstance) {
     }),
   );
 
+  /**
+   * Route to log in a user.
+   * Validates the request body against the loginSchema.
+   * Checks if the user exists and if the password matches.
+   * If successful, generates a JWT token and returns it along with user details.
+   * @route POST /login
+   * @param {LoginRequest} request.body - The login credentials.
+   * @returns {Object} - The JWT token and user details.
+   */
   fastify.post(
     "/login",
     { schema: loginSchema },

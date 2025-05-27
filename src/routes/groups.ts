@@ -17,6 +17,12 @@ import { addHours, isBefore } from "date-fns";
 import { GroupRole, GroupStatus, GroupType, User } from "../types/groups.js";
 import { decrypt } from "../utils/encryption.js";
 
+/**
+ * Ensures the user is either an admin or owner of the group.
+ * Throws a 403 error if the user is not authorized.
+ * @param userId
+ * @param groupId
+ */
 async function ensureAdminOrOwner(userId: string, groupId: string) {
   const member = await prisma.groupMember.findUnique({
     where: {
@@ -31,8 +37,17 @@ async function ensureAdminOrOwner(userId: string, groupId: string) {
     };
   }
 }
-
+/**
+ * Group management routes
+ * These routes allow users to create, join, leave, and manage groups.
+ */
 export default async function groupRoutes(fastify: FastifyInstance) {
+  /**
+   * Create a new group
+   * Requires authentication
+   * @route POST /groups
+   * @body { name: string, type: GroupType, maxMembers: number }
+   */
   fastify.post(
     "/groups",
     {
@@ -76,6 +91,22 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     }),
   );
 
+  /**
+   * Join a group
+   * Requires authentication
+   * @route POST /groups/:id/join
+   * @param {string}
+   id - The ID of the group to join
+   * @body { userId?: string, permanent?: boolean }
+   * If the group is public, the user will be added directly.
+   * If the group is private, a join request will be created.
+   * If the user is already a member, an error will be returned.
+   * If the user is banned, a 403 error will be returned.
+   * If the user is temporarily banned, a 403 error will be returned with a retry time.
+   * If the user is permanently banned, a 403 error will be returned.
+   * @returns {Object} - Success message or error
+   * @throws {Error} - 404 if group not found, 400 if already a member, 403 if banned or temporarily banned
+   */
   fastify.post(
     "/groups/:id/join",
     {
@@ -174,6 +205,19 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     }),
   );
 
+  /**
+   * Leave a group
+   * Requires authentication
+   * @route POST /groups/:id/leave
+   * @param {string} id - The ID of the group to leave
+   * @returns {Object} - Success message or error
+   * @throws {Error} - 403 if not a member, 400 if trying to leave as owner without transferring ownership
+   * @description
+   * This route allows a user to leave a group they are a member of.
+   * If the user is the owner, they must transfer ownership before leaving.
+   * If the user is not a member, a 403 error is returned.
+   * After leaving, the user is temporarily banned for 24 hours to prevent immediate rejoining.
+   */
   fastify.post(
     "/groups/:id/leave",
     {
@@ -227,6 +271,20 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     }),
   );
 
+  /**
+   * Approve a join request
+   * Requires authentication
+   * @route POST /groups/:id/approve
+   * @param {string} id - The ID of the group
+   * @body { userId: string } - The ID of the user to approve
+   * @returns {Object} - Success message or error
+   * @throws {Error} - 403 if not an admin or owner, 404 if no pending request found
+   * @description
+   * This route allows an admin or owner to approve a pending join request.
+   * If the user is not an admin or owner, a 403 error is returned.
+   * If the request does not exist or is not pending, a 404 error is returned.
+   * If approved, the user is added to the group as a member.
+   */
   fastify.post(
     "/groups/:id/approve",
     {
@@ -267,6 +325,20 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     }),
   );
 
+  /**
+   * Reject a join request
+   * Requires authentication
+   * @route POST /groups/:id/reject
+   * @param {string} id - The ID of the group
+   * @body { userId: string } - The ID of the user to reject
+   * @returns {Object} - Success message or error
+   * @throws {Error} - 403 if not an admin or owner, 404 if no pending request found
+   * @description
+   * This route allows an admin or owner to reject a pending join request.
+   * If the user is not an admin or owner, a 403 error is returned.
+   * If the request does not exist or is not pending, a 404 error is returned.
+   * If rejected, the request is updated to a REJECTED status.
+   */
   fastify.post(
     "/groups/:id/reject",
     {
@@ -297,6 +369,24 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     }),
   );
 
+  /**
+   * Ban or kick a user from a group
+   * Requires authentication
+   * @route POST /groups/:id/ban
+   * @param {string} id - The ID of the group
+   * @body { userId: string, permanent?: boolean } - The ID of the user to ban and whether the ban is permanent
+   * @returns {Object} - Success message or error
+   * @throws {Error} - 403 if not an admin or owner, 404 if user is not a member, 400 if trying to ban the owner
+   * @description
+   * This route allows an admin or owner to ban or kick a user from a group.
+   * If the user is not an admin or owner, a 403 error is returned.
+   * If the user is not a member of the group, a 404 error is returned.
+   * If the user is the owner of the group, a 400 error is returned.
+   * If the user is banned, they are removed from the group and a ban record is created.
+   * If the ban is permanent, the user cannot rejoin the group.
+   * If the ban is temporary, the user can rejoin after 24 hours.
+   * If the user is kicked, they cannot rejoin for 24 hours.
+   */
   fastify.post(
     "/groups/:id/ban",
     {
@@ -352,6 +442,21 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
     }),
   );
+  /**
+   * Promote a user to admin
+   * Requires authentication
+   * @route POST /groups/:id/promote
+   * @param {string} id - The ID of the group
+   * @body { userId: string } - The ID of the user to promote
+   * @returns {Object} - Success message or error
+   * @throws {Error} - 403 if not the owner, 404 if user is not a member, 400 if user is already an admin or owner
+   * @description
+   * This route allows the owner of a group to promote a member to admin.
+   * If the user is not the owner, a 403 error is returned.
+   * If the user is not a member of the group, a 404 error is returned.
+   * If the user is already an admin or owner, a 400 error is returned.
+   * If the user is successfully promoted, their role is updated to ADMIN.
+   */
   fastify.post(
     "/groups/:id/promote",
     {
@@ -389,6 +494,19 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     }),
   );
 
+  /**
+   * Transfer ownership of a group
+   * Requires authentication
+   * @route POST /groups/:id/transfer-ownership
+   * @param {string} id - The ID of the group
+   * @body { userId: string } - The ID of the user to transfer ownership to
+   * @returns {Object} - Success message or error
+   * @throws {Error} - 403 if not the owner, 404 if user is not a member, 400 if user is already an owner or admin
+   * @description
+   * This route allows the owner of a group to transfer ownership to another member.
+   * If the user is not the owner, a 403 error is returned.
+   * If the user is not a member of the group, a 404 error is returned.
+   */
   fastify.post(
     "/groups/:id/transfer-ownership",
     {
@@ -432,6 +550,14 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     }),
   );
 
+  /**
+   * Get group members
+   * Requires authentication
+   * @route GET /groups/:id/members
+   * @param {string} id - The ID of the group
+   * @returns {Array} - List of group members with their roles and join dates
+   * @throws {Error} - 403 if not a member of the group
+   */
   fastify.get(
     "/groups/:id/members",
     {
@@ -477,6 +603,14 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     }),
   );
 
+  /**
+   * Get pending join requests for a group
+   * Requires authentication
+   * @route GET /groups/:id/requests
+   * @param {string} id - The ID of the group
+   * @returns {Array} - List of pending join requests with user details
+   * @throws {Error} - 403 if not an admin or owner of the group
+   */
   fastify.get(
     "/groups/:id/requests",
     {
@@ -519,6 +653,14 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     }),
   );
 
+  /**
+   * Delete a group
+   * Requires authentication
+   * @route DELETE /groups/:id
+   * @param {string} id - The ID of the group to delete
+   * @returns {Object} - Success message or error
+   * @throws {Error} - 403 if not the owner, 404 if group not found, 400 if there are other members
+   */
   fastify.delete(
     "/groups/:id",
     {
@@ -560,6 +702,16 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     }),
   );
 
+  /**
+   * Get messages from a group
+   * Requires authentication
+   * @route GET /groups/:groupId/messages
+   * @param {string} groupId - The ID of the group
+   * @query {string} cursor - Optional cursor for pagination
+   * @query {number} limit - Optional limit for number of messages to return (default 20)
+   * @returns {Object} - List of messages with sender ID, content, and timestamp
+   * @throws {Error} - 403 if not a member of the group
+   */
   fastify.get<{
     Params: { groupId: string };
     Querystring: { cursor?: string; limit?: number };
