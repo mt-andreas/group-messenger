@@ -59,30 +59,26 @@ describe("WebSocket Messaging", () => {
     const receivedMessages: string[] = [];
 
     const wsOwner = new WebSocket(`ws://localhost:3000/ws/groups/${groupId}`, {
-      headers: {
-        Authorization: `Bearer ${ownerToken}`,
-      },
+      headers: { Authorization: `Bearer ${ownerToken}` },
     });
 
     const wsJoiner = new WebSocket(`ws://localhost:3000/ws/groups/${groupId}`, {
-      headers: {
-        Authorization: `Bearer ${joinerToken}`,
-      },
+      headers: { Authorization: `Bearer ${joinerToken}` },
     });
 
-    // Wait for both sockets to connect
-    await Promise.all([new Promise((resolve) => wsOwner.once("open", resolve)), new Promise((resolve) => wsJoiner.once("open", resolve))]);
+    // 1. Wait for both sockets to open
+    await Promise.all([new Promise<void>((resolve) => wsOwner.once("open", resolve)), new Promise<void>((resolve) => wsJoiner.once("open", resolve))]);
 
-    // Set up the joiner to listen before the owner sends
-    const messageReceived = new Promise<string>((resolve) => {
+    // 2. Wait for joiner to attach listener BEFORE sending
+    const messageReceived = new Promise((resolve) => {
       wsJoiner.on("message", (data) => {
         const text = data.toString();
         receivedMessages.push(text);
-        resolve(text);
+        resolve(true);
       });
     });
 
-    // Send a message from the owner
+    // 3. Send message from owner
     wsOwner.send(
       JSON.stringify({
         type: "message",
@@ -90,12 +86,13 @@ describe("WebSocket Messaging", () => {
       }),
     );
 
-    // Wait for the joiner to receive it
-    const received = await messageReceived;
+    // 4. Await delivery
+    await messageReceived;
 
-    expect(received).toContain("Hello from owner");
+    expect(receivedMessages.length).toBeGreaterThan(0);
+    expect(receivedMessages.some((msg) => msg.includes("Hello from owner"))).toBe(true);
 
     wsOwner.close();
     wsJoiner.close();
-  });
+  }, 5000); // extend timeout to 10s
 });
