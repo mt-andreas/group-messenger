@@ -1,6 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { addClient, broadcastToGroup, removeClient } from "../ws/groupSocketManager.js";
 import prisma from "../utils/prisma.js";
+import { encrypt } from "utils/encryption.js";
 
 type WsParams = {
   groupId: string;
@@ -38,11 +39,20 @@ export async function groupWsRoutes(fastify: FastifyInstance) {
       conn.on("message", async (messageBuffer: Buffer) => {
         try {
           const message: GroupMessagePayload = JSON.parse(messageBuffer.toString());
+          const encryptedContent = encrypt(message.content);
+
+          await prisma.groupMessage.create({
+            data: {
+              groupId,
+              senderId: userId,
+              content: encryptedContent,
+            },
+          });
 
           broadcastToGroup(groupId, {
             type: "message",
             from: userId,
-            content: message.content,
+            content: encryptedContent, // encrypted message
             timestamp: new Date().toISOString(),
           });
         } catch (err) {
