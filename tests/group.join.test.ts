@@ -1,7 +1,7 @@
 import app from "../src/index";
 import supertest from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { GroupType, GroupRole, GroupStatus } from "../src/types/groups.js";
+import { GroupType } from "../src/types/groups.js";
 
 let ownerToken: string;
 let joinerToken: string;
