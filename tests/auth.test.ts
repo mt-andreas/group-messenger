@@ -9,10 +9,10 @@ beforeAll(async () => {
 afterAll(async () => {
   await app.close();
 });
+const email = `user${Date.now()}@example.com`;
 
 describe("Auth API", () => {
   it("registers a new user", async () => {
-    const email = `user${Date.now()}@example.com`;
     const res = await supertest(app.server).post("/api/auth/register").send({
       email,
       password: "password123",
@@ -26,7 +26,7 @@ describe("Auth API", () => {
 
   it("logs in the user", async () => {
     const res = await supertest(app.server).post("/api/auth/login").send({
-      email: "test@example.com",
+      email,
       password: "password123",
     });
 
