@@ -12,14 +12,7 @@ import { tryCatch } from "../utils/tryCatch.js";
 import prisma from "../utils/prisma.js";
 import { joinGroupSchema } from "../schemas/groupSchema.js";
 import { addHours, isBefore } from "date-fns";
-import { GroupRole, GroupStatus, GroupType } from "../types/groups.js";
-
-type User = {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-};
+import { GroupRole, GroupStatus, GroupType, User } from "../types/groups.js";
 
 async function ensureAdminOrOwner(userId: string, groupId: string) {
   const member = await prisma.groupMember.findUnique({
@@ -539,7 +532,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     },
     tryCatch(async (request, reply) => {
       const { id: groupId } = request.params as { id: string };
-      const userId = (request.user as any).id;
+      const userId = (request.user as User).id;
 
       const group = await prisma.group.findUnique({
         where: { id: groupId },
