@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { addClient, broadcastToGroup, removeClient } from "../ws/groupSocketManager.js";
 import prisma from "../utils/prisma.js";
-import { encrypt } from "utils/encryption.js";
+import { encrypt } from "../utils/encryption.js";
 
 type WsParams = {
   groupId: string;

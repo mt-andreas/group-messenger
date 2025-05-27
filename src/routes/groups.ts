@@ -13,6 +13,7 @@ import prisma from "../utils/prisma.js";
 import { joinGroupSchema } from "../schemas/groupSchema.js";
 import { addHours, isBefore } from "date-fns";
 import { GroupRole, GroupStatus, GroupType, User } from "../types/groups.js";
+import { decrypt } from "../utils/encryption.js";
 
 async function ensureAdminOrOwner(userId: string, groupId: string) {
   const member = await prisma.groupMember.findUnique({
@@ -21,7 +22,7 @@ async function ensureAdminOrOwner(userId: string, groupId: string) {
     },
   });
 
-  if (!member || (member.role !== "OWNER" && member.role !== "ADMIN")) {
+  if (!member || (member.role !== GroupRole.OWNER && member.role !== GroupRole.ADMIN)) {
     throw {
       statusCode: 403,
       message: "You must be an admin or owner to manage join requests",
@@ -564,4 +565,47 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       return reply.send({ message: "Group deleted successfully" });
     }),
   );
+
+  fastify.get<{
+    Params: { groupId: string };
+    Querystring: { cursor?: string; limit?: number };
+  }>("/groups/:groupId/messages", { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    const { groupId } = request.params;
+    const { cursor, limit: rawLimit = 20 } = request.query;
+    const limit = Number(rawLimit);
+    const userId = (request.user as User).id;
+
+    const isMember = await prisma.groupMember.findUnique({
+      where: {
+        userId_groupId: {
+          userId,
+          groupId,
+        },
+      },
+    });
+
+    if (!isMember) {
+      return reply.code(403).send({ message: "You are not a member of this group" });
+    }
+
+    const messages = await prisma.groupMessage.findMany({
+      where: { groupId },
+      orderBy: { createdAt: "desc" },
+      take: limit + 1,
+      cursor: cursor ? { id: cursor } : undefined,
+      skip: cursor ? 1 : 0,
+    });
+
+    const nextCursor = messages.length > limit ? messages.pop()?.id : null;
+
+    return {
+      messages: messages.map((msg) => ({
+        id: msg.id,
+        from: msg.senderId,
+        content: decrypt(msg.content),
+        timestamp: msg.createdAt,
+      })),
+      nextCursor,
+    };
+  });
 }
