@@ -1,6 +1,6 @@
 import { type WebSocket } from "@fastify/websocket";
 import { Message } from "types/messages";
-
+import { decrypt } from "utils/encryption.js";
 type GroupId = string;
 
 type ClientInfo = {
@@ -36,7 +36,8 @@ export function broadcastToGroup(groupId: string, message: Message) {
   const clients = groupClients.get(groupId);
   if (clients) {
     for (const client of clients) {
-      client.socket.send(JSON.stringify(message));
+      const decryptedMessage = decrypt(message.content);
+      client.socket.send(JSON.stringify(decryptedMessage));
     }
   }
 }

@@ -15,16 +15,17 @@ datasource db {
 }
 
 model User {
-  id          String        @id @default(uuid())
-  email       String        @unique
-  password    String
-  firstName   String
-  lastName    String
-  createdAt   DateTime      @default(now())
-  groups      Group[]       @relation("GroupOwner")
-  members     GroupMember[]
-  JoinRequest JoinRequest[]
-  GroupBan    GroupBan[]
+  id           String         @id @default(uuid())
+  email        String         @unique
+  password     String
+  firstName    String
+  lastName     String
+  createdAt    DateTime       @default(now())
+  groups       Group[]        @relation("GroupOwner")
+  members      GroupMember[]
+  JoinRequest  JoinRequest[]
+  GroupBan     GroupBan[]
+  GroupMessage GroupMessage[]
 }
 
 model Group {
@@ -35,10 +36,11 @@ model Group {
   maxMembers Int
   createdAt  DateTime  @default(now())
 
-  owner    User          @relation("GroupOwner", fields: [ownerId], references: [id])
-  members  GroupMember[]
-  requests JoinRequest[]
-  GroupBan GroupBan[]
+  owner        User           @relation("GroupOwner", fields: [ownerId], references: [id])
+  members      GroupMember[]
+  requests     JoinRequest[]
+  GroupBan     GroupBan[]
+  GroupMessage GroupMessage[]
 
   @@map("groups")
 }
@@ -81,6 +83,17 @@ model GroupBan {
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, groupId])
+}
+
+model GroupMessage {
+  id        String   @id @default(uuid())
+  groupId   String
+  senderId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  group  Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender User  @relation(fields: [senderId], references: [id], onDelete: Cascade)
 }
 
 enum GroupType {
