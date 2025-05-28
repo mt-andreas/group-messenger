@@ -2,6 +2,8 @@ import { FastifyInstance } from "fastify";
 import { addClient, broadcastToGroup, removeClient } from "../ws/groupSocketManager.js";
 import prisma from "../utils/prisma.js";
 import { encrypt } from "../utils/encryption.js";
+import { User } from "../types/groups.js";
+import { GroupMessageResponse } from "types/responses.js";
 
 type WsParams = {
   groupId: string;
@@ -28,7 +30,7 @@ export async function groupWsRoutes(fastify: FastifyInstance) {
     },
     async (conn, request) => {
       const groupId = (request.params as WsParams).groupId;
-      const userId = (request.user as { id: string }).id;
+      const { id: userId, firstName, lastName } = request.user as User;
 
       const isMember = await prisma.groupMember.findUnique({
         where: {
@@ -48,7 +50,7 @@ export async function groupWsRoutes(fastify: FastifyInstance) {
           const message: GroupMessagePayload = JSON.parse(messageBuffer.toString());
           const encryptedContent = encrypt(message.content);
 
-          await prisma.groupMessage.create({
+          const createdMessage = await prisma.groupMessage.create({
             data: {
               groupId,
               senderId: userId,
@@ -56,12 +58,19 @@ export async function groupWsRoutes(fastify: FastifyInstance) {
             },
           });
 
-          broadcastToGroup(groupId, {
-            type: "message",
-            from: userId,
+          const messageToSend: GroupMessageResponse = {
+            id: createdMessage.id,
+            groupId,
+            sender: {
+              id: userId,
+              firstName,
+              lastName,
+            },
             content: encryptedContent, // encrypted message
-            timestamp: new Date().toISOString(),
-          });
+            createdAt: new Date(),
+          };
+
+          broadcastToGroup(messageToSend);
         } catch (err) {
           console.error("Error handling message:", err);
         }
