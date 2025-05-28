@@ -12,16 +12,10 @@ export enum GroupRole {
 }
 
 export enum GroupStatus {
-  ACTIVE = "ACTIVE",
-  INACTIVE = "INACTIVE",
   APPROVED = "APPROVED",
   BANNED = "BANNED",
   PENDING = "PENDING",
   REJECTED = "REJECTED",
-  ACCEPTED = "ACCEPTED",
-  BLOCKED = "BLOCKED",
-  UNBLOCKED = "UNBLOCKED",
-  DELETED = "DELETED",
 }
 
 export type User = {
