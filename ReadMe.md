@@ -8,11 +8,11 @@ A secure group messaging platform built with **Fastify**, **TypeScript**, **Pris
 
 ### 1. Clone and Install
 
-\```
+```
 git clone https://github.com/your-org/group-messenger.git
 cd group-messenger
 yarn install
-\```
+```
 
 ### 2. Configure Environment Variables
 
@@ -20,7 +20,7 @@ Create a `.env` file:
 
 Remember to keep this information safe, and to change the sensitive values (POSTGRES_PASSWORD,JWT_SECRET, ENCRYPTION_SECRET).
 
-\```
+```
 POSTGRES_USER=myuser
 POSTGRES_PASSWORD=mypassword
 POSTGRES_DB=messenger
@@ -28,20 +28,20 @@ DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/$
 JWT_SECRET=your_jwt_secret
 ENCRYPTION_SECRET=your_32_byte_key
 LOCKOUT_HOURS=48
-\```
+```
 
 ### 3. Generate Prisma Client
 
-\```
+```
 npx prisma generate
 npx prisma migrate dev --name init
-\```
+```
 
 ### 4. Start Server
 
-\```
+```
 yarn dev
-\```
+```
 
 Server runs at: `http://localhost:3000`
 
@@ -52,22 +52,23 @@ You need to install Docker and docker-compose.
 There are two docker files.
 If you need to spool up a postgres DB you can use the following command:
 
-\``
+```
 docker-compose -f docker-compose-utils.yml up -d
-\`
+```
 
 To run the backend service and Postgres
 
-\``
+```
 docker-compose up -d --build
-\`
+```
 
 Once the container is up you can still connect to `http://localhost:3000`
 
 To take down the containers:
-\``
+
+```
 docker-compose down
-\`
+```
 
 ---
 
@@ -85,9 +86,9 @@ All routes are prefixed with `/api`.
 
 To run the tests:
 
-\``
+```
 yarn test
-\`
+```
 
 tests/
 ├── auth.test.ts # Register & login
