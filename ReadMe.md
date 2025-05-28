@@ -102,6 +102,7 @@ tests/
 ├── group.postMessages.test.ts # Post group message
 ├── group.promote.test.ts # Promote & transfer ownership
 ├── group.view.test.ts # Get groups
+├── groups.get.test.ts # Get groups
 
 ---
 
