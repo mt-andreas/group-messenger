@@ -42,6 +42,12 @@ describe("GET /groups", () => {
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThan(0);
     expect(res.body.every((group) => Object.prototype.hasOwnProperty.call(group, "id"))).toBe(true);
+    expect(res.body[0]).toHaveProperty("id");
+    expect(res.body[0]).toHaveProperty("name");
+    expect(res.body[0]).toHaveProperty("type");
+    expect(res.body[0]).toHaveProperty("maxMembers");
+    expect(res.body[0]).toHaveProperty("ownerId");
+    expect(res.body[0]).toHaveProperty("lastMessage");
   });
 
   it("returns all groups in the system when all=true is passed", async () => {
@@ -51,5 +57,11 @@ describe("GET /groups", () => {
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThan(1);
     expect(res.body.every((group) => Object.prototype.hasOwnProperty.call(group, "id"))).toBe(true);
+    expect(res.body[0]).toHaveProperty("id");
+    expect(res.body[0]).toHaveProperty("name");
+    expect(res.body[0]).toHaveProperty("type");
+    expect(res.body[0]).toHaveProperty("maxMembers");
+    expect(res.body[0]).toHaveProperty("ownerId");
+    expect(res.body[0]).toHaveProperty("lastMessage");
   });
 });

@@ -1,3 +1,5 @@
+import { Group } from "@prisma/client";
+
 export enum GroupType {
   PUBLIC = "PUBLIC",
   PRIVATE = "PRIVATE",
@@ -27,4 +29,11 @@ export type User = {
   email: string;
   firstName: string;
   lastName: string;
+};
+
+export type GroupWithLastMessage = Group & {
+  GroupMessage: {
+    content: string;
+    createdAt: Date;
+  }[];
 };

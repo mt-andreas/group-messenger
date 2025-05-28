@@ -19,6 +19,7 @@ import { addHours, isBefore } from "date-fns";
 import { GroupRole, GroupStatus, GroupType, User } from "../types/groups.js";
 import { decrypt, encrypt } from "../utils/encryption.js";
 import config from "../utils/config.js";
+import { formatGroups } from "./helpers.js";
 
 /**
  * Ensures the user is either an admin or owner of the group.
@@ -100,6 +101,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
    * @route GET /groups
    * @param {number} limit - Number of groups to return (default 20)
    * @param {number} offset - Offset for pagination (default 0)
+   * @param {boolean} all - If true, returns all groups in the system, otherwise only groups the user is a member of
    * @returns {Array} - List of groups the user is a member of
    * @throws {Error} - 401 if not authenticated
    */
@@ -119,52 +121,52 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         offset: number;
         all: boolean;
       };
-      const user = request.user as { id: string };
+      const userId = (request.user as User).id;
 
       if (all) {
         const groups = await prisma.group.findMany({
           skip: offset,
           take: limit,
           orderBy: { createdAt: "desc" },
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            maxMembers: true,
-            ownerId: true,
-            createdAt: true,
+          include: {
+            GroupMessage: {
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              select: {
+                content: true,
+                createdAt: true,
+              },
+            },
           },
         });
 
-        return reply.send(groups);
+        return reply.send(formatGroups(groups));
       }
 
-      const memberships = await prisma.groupMember.findMany({
-        where: { userId: user.id },
+      const userGroups = await prisma.group.findMany({
+        where: {
+          members: {
+            some: {
+              userId,
+            },
+          },
+        },
         include: {
-          group: {
+          GroupMessage: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
             select: {
-              id: true,
-              name: true,
-              type: true,
-              maxMembers: true,
-              ownerId: true,
+              content: true,
               createdAt: true,
             },
           },
         },
         skip: offset,
         take: limit,
-        orderBy: { joinedAt: "desc" },
+        orderBy: { createdAt: "desc" },
       });
 
-      return reply.send(
-        memberships.map((m) => ({
-          ...m.group,
-          role: m.role,
-          joinedAt: m.joinedAt,
-        })),
-      );
+      return reply.send(formatGroups(userGroups));
     }),
   );
 
