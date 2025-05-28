@@ -1,151 +1,120 @@
-# Group Messaging Backend
+# Group Messaging API
 
-This is a Node.js backend for a secure group messaging platform supporting public and private groups, user authentication, encrypted messaging, and group management.
+A secure group messaging platform built with **Fastify**, **TypeScript**, **Prisma**, **PostgreSQL**, and **WebSockets**. Supports private/public groups, user roles, join requests, bans, and encrypted messaging.
 
-## 🔧 Tech Stack
+---
 
-- Node.js
-- Fastify
-- TypeScript
-- Prisma ORM
-- PostgreSQL
-- Swagger (OpenAPI docs)
-- JWT authentication
-- Bcrypt for password hashing
+## 🚀 Setup Instructions
 
-## 🚀 Getting Started
+### 1. Clone and Install
 
-### 1. Clone the repo and install dependencies
-
-git clone
+\```
+git clone https://github.com/your-org/group-messenger.git
 cd group-messenger
 yarn install
+\```
 
-### 2. Set up the database
+### 2. Configure Environment Variables
 
-Ensure you have PostgreSQL running, then update your `.env` file:
-POSTGRES_USER=
-POSTGRES_PASSWORD=
+Create a `.env` file:
+
+Remember to keep this information safe, and to change the sensitive values (POSTGRES_PASSWORD,JWT_SECRET, ENCRYPTION_SECRET).
+
+\```
+POSTGRES_USER=myuser
+POSTGRES_PASSWORD=mypassword
 POSTGRES_DB=messenger
 DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}
-JWT_SECRET=
+JWT_SECRET=your_jwt_secret
+ENCRYPTION_SECRET=your_32_byte_key
+LOCKOUT_HOURS=48
+\```
 
-### 3. Set up Prisma
+### 3. Generate Prisma Client
 
-npx prisma migrate dev –name init
+\```
 npx prisma generate
+npx prisma migrate dev --name init
+\```
 
-### 4. Start the dev server
+### 4. Start Server
 
+\```
 yarn dev
+\```
 
-http://localhost:3000/docs
-to view the Swagger UI documentation.
+Server runs at: `http://localhost:3000`
 
-### 5. Docker
+### 4. Docker
 
-## 🐳 Run with Docker
+You need to install Docker and docker-compose.
 
-To start the app with PostgreSQL in containers:
+There are two docker files.
+If you need to spool up a postgres DB you can use the following command:
 
-First ensuer you build the app with yarn build
+\``
+docker-compose -f docker-compose-utils.yml up -d
+\`
 
-```bash
-docker-compose up --build
-```
+To run the backend service and Postgres
 
-### Groups:
+\``
+docker-compose up -d --build
+\`
 
-## Task 1: Create Group
+Once the container is up you can still connect to `http://localhost:3000`
 
-📌 Endpoint
+To take down the containers:
+\``
+docker-compose down
+\`
 
-POST /api/groups
+---
 
-🔐 Auth Required: Yes (user must be logged in)
+## 📘 API Documentation
 
-📥 Request Body
-{
-"name": "Solana Enthusiasts",
-"type": "PRIVATE",
-"maxMembers": 100
-}
+To view the Swagger UI documentation.
 
-🧠 Logic
-• Must validate input
-• Must ensure maxMembers >= 2
-• Create a Group with logged-in user as ownerId
-• Add owner as GroupMember with role OWNER
+`http://localhost:3000/docs`
 
-## Task 2: Join Group
+All routes are prefixed with `/api`.
 
-📌 Endpoint
-
-POST /api/groups/:id/join
-
-🔐 Auth Required: Yes
-
-🧠 Logic
-• For PUBLIC groups:
-• Immediately add user as MEMBER
-• For PRIVATE groups:
-• Create a JoinRequest with status PENDING
-• Check GroupBan for lockout enforcement
-• Prevent joining if already a member
-
-## ✅ Task 3: Leave Group
-
-📌 Endpoint
-
-POST /api/groups/:id/leave
-
-🧠 Logic
-• Remove GroupMember
-• Add a GroupBan with timestamp
-• OWNER cannot leave unless they’ve transferred ownership
-
-## Task 4: Approve/Reject Join Requests
-
-📌 Endpoints
-• POST /api/groups/:id/approve
-• POST /api/groups/:id/reject
-
-🧠 Logic
-• Only OWNER or ADMIN can approve/reject
-• Change JoinRequest.status to APPROVED or REJECTED
-• Add user to GroupMember if approved
-
-## Task 5: Promote to Admin / Transfer Ownership
-
-📌 Endpoints
-• POST /api/groups/:id/promote
-• POST /api/groups/:id/transfer-ownership
-
-## Task 6: Kick / Banish User
-
-📌 Endpoint
-
-POST /api/groups/:id/banish
-
-🧠 Logic
-• Only OWNER or ADMIN can ban
-• Add GroupBan
-• Remove from GroupMember
-
-## Task 7: List Group Members & Join Requests
-
-📌 Endpoints
-• GET /api/groups/:id/members
-• GET /api/groups/:id/requests
+---
 
 ### Tests
 
+To run the tests:
+
+\``
+yarn test
+\`
+
 tests/
 ├── auth.test.ts # Register & login
+├── group.approve.test.ts # Approve/Reject join
+├── group.ban.test.ts # Kick/Ban user
 ├── group.create.test.ts # Create group
+├── group.delete.test.ts # Delete group
+├── group.getMessages.test.ts # Get group messages
 ├── group.join.test.ts # Join group (public/private, lockout, ban)
 ├── group.leave.test.ts # Leave group
-├── group.approve.test.ts # Approve/Reject join
-├── group.banish.test.ts # Kick/Ban user
+├── group.messaging.test.ts # Websocket messaging
+├── group.postMessages.test.ts # Post group message
 ├── group.promote.test.ts # Promote & transfer ownership
-├── group.view.test.ts # Get members, requests
+├── group.view.test.ts # Get groups
+
+---
+
+## 🔐 Security
+
+- AES-128 encryption for all messages
+- JWT authentication on every request
+- Group owner/admin permissions enforced
+
+---
+
+## ⚠️ Known Issues
+
+- WebSocket client messages not persisted if sent before join confirmation
+- No user profile UI (only token-based auth tested via API)
+- Pagination uses `cursor`, but there’s no total count support
