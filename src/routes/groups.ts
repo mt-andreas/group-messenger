@@ -20,6 +20,14 @@ import { GroupRole, GroupStatus, GroupType, User } from "../types/groups.js";
 import { decrypt, encrypt } from "../utils/encryption.js";
 import config from "../utils/config.js";
 import { formatGroups } from "./helpers.js";
+import {
+  CreateGroupResponse,
+  GenericMessageResponse,
+  GroupMembersResponse,
+  GroupMessageResponse,
+  GroupResponse,
+  JoinGroupResponse,
+} from "../types/responses.js";
 
 /**
  * Ensures the user is either an admin or owner of the group.
@@ -52,7 +60,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
    * @route POST /groups
    * @body { name: string, type: GroupType, maxMembers: number }
    */
-  fastify.post(
+  fastify.post<{ Reply: CreateGroupResponse }>(
     "/groups",
     {
       preHandler: [fastify.authenticate],
@@ -105,7 +113,9 @@ export default async function groupRoutes(fastify: FastifyInstance) {
    * @returns {Array} - List of groups the user is a member of
    * @throws {Error} - 401 if not authenticated
    */
-  fastify.get(
+  fastify.get<{
+    Reply: GroupResponse;
+  }>(
     "/groups",
     {
       preHandler: [fastify.authenticate],
@@ -165,7 +175,6 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         take: limit,
         orderBy: { createdAt: "desc" },
       });
-
       return reply.send(formatGroups(userGroups));
     }),
   );
@@ -186,7 +195,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
    * @returns {Object} - Success message or error
    * @throws {Error} - 404 if group not found, 400 if already a member, 403 if banned or temporarily banned
    */
-  fastify.post(
+  fastify.post<{ Reply: JoinGroupResponse }>(
     "/groups/:id/join",
     {
       preHandler: [fastify.authenticate],
@@ -297,7 +306,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
    * If the user is not a member, a 403 error is returned.
    * After leaving, the user is temporarily banned for x hours to prevent immediate rejoining.
    */
-  fastify.post(
+  fastify.post<{ Reply: GenericMessageResponse }>(
     "/groups/:id/leave",
     {
       preHandler: [fastify.authenticate],
@@ -364,7 +373,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
    * If the request does not exist or is not pending, a 404 error is returned.
    * If approved, the user is added to the group as a member.
    */
-  fastify.post(
+  fastify.post<{ Reply: GenericMessageResponse }>(
     "/groups/:id/approve",
     {
       preHandler: [fastify.authenticate],
@@ -418,7 +427,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
    * If the request does not exist or is not pending, a 404 error is returned.
    * If rejected, the request is updated to a REJECTED status.
    */
-  fastify.post(
+  fastify.post<{ Reply: GenericMessageResponse }>(
     "/groups/:id/reject",
     {
       preHandler: [fastify.authenticate],
@@ -466,7 +475,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
    * If the ban is temporary, the user can rejoin after x hours.
    * If the user is kicked, they cannot rejoin for x hours.
    */
-  fastify.post(
+  fastify.post<{ Reply: GenericMessageResponse }>(
     "/groups/:id/ban",
     {
       preHandler: [fastify.authenticate],
@@ -536,7 +545,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
    * If the user is already an admin or owner, a 400 error is returned.
    * If the user is successfully promoted, their role is updated to ADMIN.
    */
-  fastify.post(
+  fastify.post<{ Reply: GenericMessageResponse }>(
     "/groups/:id/promote",
     {
       preHandler: [fastify.authenticate],
@@ -586,7 +595,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
    * If the user is not the owner, a 403 error is returned.
    * If the user is not a member of the group, a 404 error is returned.
    */
-  fastify.post(
+  fastify.post<{ Reply: GenericMessageResponse }>(
     "/groups/:id/transfer-ownership",
     {
       preHandler: [fastify.authenticate],
@@ -637,7 +646,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
    * @returns {Array} - List of group members with their roles and join dates
    * @throws {Error} - 403 if not a member of the group
    */
-  fastify.get(
+  fastify.get<{ Reply: GroupMembersResponse }>(
     "/groups/:id/members",
     {
       preHandler: [fastify.authenticate],
@@ -740,7 +749,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
    * @returns {Object} - Success message or error
    * @throws {Error} - 403 if not the owner, 404 if group not found, 400 if there are other members
    */
-  fastify.delete(
+  fastify.delete<{ Reply: GenericMessageResponse }>(
     "/groups/:id",
     {
       preHandler: [fastify.authenticate],
@@ -756,8 +765,6 @@ export default async function groupRoutes(fastify: FastifyInstance) {
           members: true,
         },
       });
-
-      console.log("Group to delete:", group);
 
       if (!group) {
         return reply.status(404).send({ message: "Group not found" });
@@ -794,8 +801,9 @@ export default async function groupRoutes(fastify: FastifyInstance) {
   fastify.get<{
     Params: { groupId: string };
     Querystring: { cursor?: string; limit?: number };
+    Reply: { messages: GroupMessageResponse[]; nextCursor: string | null | undefined } | { message: string };
   }>("/groups/:groupId/messages", { preHandler: [fastify.authenticate], schema: groupMessageSchema }, async (request, reply) => {
-    const { groupId } = request.params;
+    const { groupId } = request.params as { groupId: string };
     const { cursor, limit: rawLimit = 20 } = request.query;
     const limit = Number(rawLimit);
     const userId = (request.user as User).id;
@@ -823,18 +831,19 @@ export default async function groupRoutes(fastify: FastifyInstance) {
 
     const nextCursor = messages.length > limit ? messages.pop()?.id : null;
 
-    return {
+    return reply.send({
       messages: messages.map((msg) => ({
         id: msg.id,
-        from: msg.senderId,
+        groupId: msg.groupId,
+        senderId: msg.senderId,
         content: decrypt(msg.content),
-        timestamp: msg.createdAt,
+        createdAt: msg.createdAt,
       })),
       nextCursor,
-    };
+    });
   });
 
-  fastify.post(
+  fastify.post<{ Reply: GroupMessageResponse }>(
     "/groups/:groupId/messages",
     {
       preHandler: [fastify.authenticate],
@@ -869,7 +878,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         id: message.id,
         from: message.senderId,
         content,
-        timestamp: message.createdAt,
+        createdAt: message.createdAt,
       });
     }),
   );
