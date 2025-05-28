@@ -18,6 +18,7 @@ export const getUserGroupsSchema = {
     properties: {
       limit: { type: "integer", minimum: 1, maximum: 100, default: 20 },
       offset: { type: "integer", minimum: 0, default: 0 },
+      all: { type: "boolean", default: false },
     },
   },
 };

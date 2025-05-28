@@ -110,13 +110,48 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       schema: getUserGroupsSchema,
     },
     tryCatch(async (request, reply) => {
-      const user = request.user as User;
-      const { limit = 20, offset = 0 } = request.query as { limit: number; offset: number };
+      const {
+        limit = 20,
+        offset = 0,
+        all = false,
+      } = request.query as {
+        limit: number;
+        offset: number;
+        all: boolean;
+      };
+      const user = request.user as { id: string };
 
-      const groups = await prisma.groupMember.findMany({
+      if (all) {
+        const groups = await prisma.group.findMany({
+          skip: offset,
+          take: limit,
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            maxMembers: true,
+            ownerId: true,
+            createdAt: true,
+          },
+        });
+
+        return reply.send(groups);
+      }
+
+      const memberships = await prisma.groupMember.findMany({
         where: { userId: user.id },
         include: {
-          group: true,
+          group: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              maxMembers: true,
+              ownerId: true,
+              createdAt: true,
+            },
+          },
         },
         skip: offset,
         take: limit,
@@ -124,14 +159,10 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       return reply.send(
-        groups.map((membership) => ({
-          id: membership.group.id,
-          name: membership.group.name,
-          type: membership.group.type,
-          maxMembers: membership.group.maxMembers,
-          ownerId: membership.group.ownerId,
-          role: membership.role,
-          joinedAt: membership.joinedAt,
+        memberships.map((m) => ({
+          ...m.group,
+          role: m.role,
+          joinedAt: m.joinedAt,
         })),
       );
     }),
