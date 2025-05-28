@@ -15,6 +15,6 @@ describe("POST /groups/:groupId/messages", () => {
     expect(res.body).toHaveProperty("id");
     expect(res.body).toHaveProperty("from");
     expect(res.body).toHaveProperty("content", "This is a test message");
-    expect(res.body).toHaveProperty("timestamp");
+    expect(new Date(res.body.createdAt)).toBeInstanceOf(Date);
   });
 });
