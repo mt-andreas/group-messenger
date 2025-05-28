@@ -23,3 +23,11 @@ export type GroupMembersResponse = Omit<GroupMember, "id">[];
 export type RequestsResponse = Omit<JoinRequest, "id">[];
 
 export type GroupMessageResponse = GroupMessage;
+
+export type PaginatedMessagesResponse =
+  | {
+      messages: GroupMessageResponse[];
+      nextCursor: string | null | undefined;
+      totalCount: number;
+    }
+  | { message: string };

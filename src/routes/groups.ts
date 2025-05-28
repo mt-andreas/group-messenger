@@ -27,6 +27,7 @@ import {
   GroupMessageResponse,
   GroupResponse,
   JoinGroupResponse,
+  PaginatedMessagesResponse,
 } from "../types/responses.js";
 
 /**
@@ -801,7 +802,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
   fastify.get<{
     Params: { groupId: string };
     Querystring: { cursor?: string; limit?: number };
-    Reply: { messages: GroupMessageResponse[]; nextCursor: string | null | undefined } | { message: string };
+    Reply: PaginatedMessagesResponse;
   }>("/groups/:groupId/messages", { preHandler: [fastify.authenticate], schema: groupMessageSchema }, async (request, reply) => {
     const { groupId } = request.params as { groupId: string };
     const { cursor, limit: rawLimit = 20 } = request.query;
@@ -829,6 +830,10 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       skip: cursor ? 1 : 0,
     });
 
+    const totalCount = await prisma.groupMessage.count({
+      where: { groupId },
+    });
+
     const nextCursor = messages.length > limit ? messages.pop()?.id : null;
 
     return reply.send({
@@ -840,6 +845,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         createdAt: msg.createdAt,
       })),
       nextCursor,
+      totalCount,
     });
   });
 
