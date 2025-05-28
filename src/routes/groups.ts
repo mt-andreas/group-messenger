@@ -3,6 +3,7 @@ import {
   banishUserSchema,
   createGroupSchema,
   deleteGroupSchema,
+  getUserGroupsSchema,
   groupIdParamSchema,
   groupMessageSchema,
   leaveGroupSchema,
@@ -90,6 +91,49 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         maxMembers: group.maxMembers,
         ownerId: group.ownerId,
       });
+    }),
+  );
+
+  /**
+   * Get user groups
+   * Requires authentication
+   * @route GET /groups
+   * @param {number} limit - Number of groups to return (default 20)
+   * @param {number} offset - Offset for pagination (default 0)
+   * @returns {Array} - List of groups the user is a member of
+   * @throws {Error} - 401 if not authenticated
+   */
+  fastify.get(
+    "/groups",
+    {
+      preHandler: [fastify.authenticate],
+      schema: getUserGroupsSchema,
+    },
+    tryCatch(async (request, reply) => {
+      const user = request.user as User;
+      const { limit = 20, offset = 0 } = request.query as { limit: number; offset: number };
+
+      const groups = await prisma.groupMember.findMany({
+        where: { userId: user.id },
+        include: {
+          group: true,
+        },
+        skip: offset,
+        take: limit,
+        orderBy: { joinedAt: "desc" },
+      });
+
+      return reply.send(
+        groups.map((membership) => ({
+          id: membership.group.id,
+          name: membership.group.name,
+          type: membership.group.type,
+          maxMembers: membership.group.maxMembers,
+          ownerId: membership.group.ownerId,
+          role: membership.role,
+          joinedAt: membership.joinedAt,
+        })),
+      );
     }),
   );
 

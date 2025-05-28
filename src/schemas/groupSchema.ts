@@ -12,6 +12,16 @@ export const createGroupSchema = {
   },
 };
 
+export const getUserGroupsSchema = {
+  querystring: {
+    type: "object",
+    properties: {
+      limit: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+      offset: { type: "integer", minimum: 0, default: 0 },
+    },
+  },
+};
+
 export const joinGroupSchema = {
   params: {
     type: "object",
@@ -108,7 +118,7 @@ export const groupMessageSchema = {
     type: "object",
     properties: {
       cursor: { type: "string", format: "uuid" },
-      limit: { type: "integer", minimum: 1 },
+      limit: { type: "integer", minimum: 1, maximum: 500, default: 100 },
     },
   },
 };
