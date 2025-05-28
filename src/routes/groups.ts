@@ -4,7 +4,7 @@ import {
   createGroupSchema,
   deleteGroupSchema,
   getUserGroupsSchema,
-  groupIdParamSchema,
+  groupMembersSchema,
   groupMessageSchema,
   leaveGroupSchema,
   manageJoinRequestSchema,
@@ -641,7 +641,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     "/groups/:id/members",
     {
       preHandler: [fastify.authenticate],
-      schema: groupIdParamSchema,
+      schema: groupMembersSchema,
     },
     tryCatch(async (request, reply) => {
       const { id: groupId } = request.params as { id: string };
@@ -694,7 +694,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     "/groups/:id/requests",
     {
       preHandler: [fastify.authenticate],
-      schema: groupIdParamSchema,
+      schema: groupMembersSchema,
     },
     tryCatch(async (request, reply) => {
       const { id: groupId } = request.params as { id: string };
