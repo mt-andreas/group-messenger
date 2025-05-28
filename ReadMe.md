@@ -114,8 +114,7 @@ tests/
 
 ---
 
-## ⚠️ Known Issues
+## ⚠️ Concerns
 
 - WebSocket client messages not persisted if sent before join confirmation
 - No user profile UI (only token-based auth tested via API)
-- Pagination uses `cursor`, but there’s no total count support

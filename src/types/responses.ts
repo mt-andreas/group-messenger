@@ -22,7 +22,13 @@ export type GroupMembersResponse = Omit<GroupMember, "id">[];
 
 export type RequestsResponse = Omit<JoinRequest, "id">[];
 
-export type GroupMessageResponse = GroupMessage;
+export type GroupMessageResponse = Omit<GroupMessage, "senderId"> & {
+  sender?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+};
 
 export type PaginatedMessagesResponse =
   | {

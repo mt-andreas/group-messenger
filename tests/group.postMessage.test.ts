@@ -13,7 +13,7 @@ describe("POST /groups/:groupId/messages", () => {
 
     expect(res.statusCode).toBe(201);
     expect(res.body).toHaveProperty("id");
-    expect(res.body).toHaveProperty("from");
+    expect(res.body).toHaveProperty("sender");
     expect(res.body).toHaveProperty("content", "This is a test message");
     expect(new Date(res.body.createdAt)).toBeInstanceOf(Date);
   });

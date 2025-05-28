@@ -47,12 +47,14 @@ describe("GET /api/groups/:groupId/messages", () => {
       });
     }
   });
-
-  it("returns paginated messages", async () => {
+  it("returns paginated messages with sender and pagination metadata", async () => {
     const res = await supertest(app.server).get(`/api/groups/${groupId}/messages?limit=2`).set("Authorization", `Bearer ${ownerToken}`);
 
     expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty("messages");
+    expect(Array.isArray(res.body.messages)).toBe(true);
     expect(res.body.messages.length).toBeLessThanOrEqual(2);
+
     expect(res.body).toHaveProperty("nextCursor");
   });
 
@@ -65,6 +67,7 @@ describe("GET /api/groups/:groupId/messages", () => {
       const next = await supertest(app.server).get(`/api/groups/${groupId}/messages?limit=2&cursor=${cursor}`).set("Authorization", `Bearer ${ownerToken}`);
 
       expect(next.statusCode).toBe(200);
+      expect(Array.isArray(next.body.messages)).toBe(true);
       expect(next.body.messages.length).toBeLessThanOrEqual(2);
     }
   });

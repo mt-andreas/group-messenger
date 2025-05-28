@@ -828,6 +828,15 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       take: limit + 1,
       cursor: cursor ? { id: cursor } : undefined,
       skip: cursor ? 1 : 0,
+      include: {
+        sender: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
     });
 
     const totalCount = await prisma.groupMessage.count({
@@ -840,7 +849,13 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       messages: messages.map((msg) => ({
         id: msg.id,
         groupId: msg.groupId,
-        senderId: msg.senderId,
+        sender: msg.sender
+          ? {
+              id: msg.sender.id,
+              firstName: msg.sender.firstName,
+              lastName: msg.sender.lastName,
+            }
+          : undefined,
         content: decrypt(msg.content),
         createdAt: msg.createdAt,
       })),
@@ -880,9 +895,20 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         },
       });
 
+      const sender = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, firstName: true, lastName: true },
+      });
+
       return reply.code(201).send({
         id: message.id,
-        from: message.senderId,
+        sender: sender
+          ? {
+              id: sender.id,
+              firstName: sender.firstName,
+              lastName: sender.lastName,
+            }
+          : undefined,
         content,
         createdAt: message.createdAt,
       });
