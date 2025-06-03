@@ -46,8 +46,8 @@ async function ensureAdminOrOwner(userId: string, groupId: string) {
 
   if (!member || (member.role !== GroupRole.OWNER && member.role !== GroupRole.ADMIN)) {
     throw {
-      statusCode: 403,
-      message: "You must be an admin or owner to manage join requests",
+      statusCode: errors.forbidden().statusCode,
+      message: errors.forbidden("You must be an admin or owner to manage join requests").message,
     };
   }
 }
@@ -817,7 +817,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     });
 
     if (!isMember) {
-      return reply.code(errors.forbidden().statusCode).send({ message: errors.forbidden("You are not a member of this group").message });
+      return reply.status(errors.forbidden().statusCode).send({ message: errors.forbidden("You are not a member of this group").message });
     }
 
     const messages = await prisma.groupMessage.findMany({
@@ -880,7 +880,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!isMember) {
-        return reply.code(errors.forbidden().statusCode).send({ message: errors.forbidden("You are not a member of this group").message });
+        return reply.status(errors.forbidden().statusCode).send({ message: errors.forbidden("You are not a member of this group").message });
       }
 
       const encrypted = encrypt(content);
