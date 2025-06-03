@@ -14,6 +14,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Represents a user in the system.
 model User {
   id           String         @id @default(uuid())
   email        String         @unique
@@ -21,13 +22,24 @@ model User {
   firstName    String
   lastName     String
   createdAt    DateTime       @default(now())
+
+  /// Groups this user owns
   groups       Group[]        @relation("GroupOwner")
+
+  /// Groups this user is a member of
   members      GroupMember[]
+
+  /// Join requests submitted by this user
   JoinRequest  JoinRequest[]
+
+  /// Records of groups the user is banned from
   GroupBan     GroupBan[]
+
+  /// Messages the user has sent
   GroupMessage GroupMessage[]
 }
 
+/// Represents a group, which has members, an owner, and messages.
 model Group {
   id         String    @id @default(uuid())
   name       String
@@ -36,21 +48,37 @@ model Group {
   maxMembers Int
   createdAt  DateTime  @default(now())
 
+  /// The user who owns this group
   owner        User           @relation("GroupOwner", fields: [ownerId], references: [id])
+
+  /// Members in this group
   members      GroupMember[]
+
+  /// Requests to join this group
   requests     JoinRequest[]
+
+  /// Users who are banned from this group
   GroupBan     GroupBan[]
+
+  /// Messages sent in this group
   GroupMessage GroupMessage[]
 
   @@map("groups")
 }
 
+/// Links a user to a group as a member with a specific role.
 model GroupMember {
   id         String    @id @default(uuid())
   userId     String
   groupId    String
+
+  /// Role the user has in the group (MEMBER, ADMIN, OWNER)
   role       GroupRole @default(MEMBER)
+
+  /// Timestamp when the user joined the group
   joinedAt   DateTime  @default(now())
+
+  /// Optional timestamp if the user was banished
   banishedAt DateTime?
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -59,11 +87,15 @@ model GroupMember {
   @@unique([userId, groupId])
 }
 
+/// Tracks requests from users to join a group.
 model JoinRequest {
   id        String        @id @default(uuid())
   userId    String
   groupId   String
+
+  /// Status of the join request (PENDING, APPROVED, REJECTED)
   status    RequestStatus @default(PENDING)
+
   createdAt DateTime      @default(now())
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -72,11 +104,15 @@ model JoinRequest {
   @@unique([userId, groupId])
 }
 
+/// Represents a user who has been banned from a group.
 model GroupBan {
   id        String   @id @default(uuid())
   userId    String
   groupId   String
+
+  /// If true, the ban is permanent
   permanent Boolean  @default(false)
+
   createdAt DateTime @default(now())
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -85,6 +121,7 @@ model GroupBan {
   @@unique([userId, groupId])
 }
 
+/// A message sent by a user in a group chat.
 model GroupMessage {
   id        String   @id @default(uuid())
   groupId   String
@@ -96,17 +133,20 @@ model GroupMessage {
   sender User  @relation(fields: [senderId], references: [id], onDelete: Cascade)
 }
 
+/// Enum indicating whether a group is public or private.
 enum GroupType {
   PUBLIC
   PRIVATE
 }
 
+/// Enum defining user roles within a group.
 enum GroupRole {
   MEMBER
   ADMIN
   OWNER
 }
 
+/// Enum indicating the status of a join request.
 enum RequestStatus {
   PENDING
   APPROVED
