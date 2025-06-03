@@ -29,6 +29,7 @@ import {
   JoinGroupResponse,
   PaginatedMessagesResponse,
 } from "../types/responses.js";
+import { errors } from "../utils/errors.js";
 
 /**
  * Ensures the user is either an admin or owner of the group.
@@ -212,7 +213,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         include: { members: true },
       });
 
-      if (!group) return reply.status(404).send({ message: "Group not found" });
+      if (!group) return reply.status(errors.notFound().statusCode).send({ message: errors.notFound("Group not found").message });
 
       const isMember = await prisma.groupMember.findUnique({
         where: {
@@ -221,7 +222,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (isMember) {
-        return reply.status(400).send({ message: "Already a member of this group" });
+        return reply.status(errors.conflict().statusCode).send({ message: errors.conflict("Already a member of this group").message });
       }
 
       const ban = await prisma.groupBan.findUnique({
@@ -232,18 +233,15 @@ export default async function groupRoutes(fastify: FastifyInstance) {
 
       if (ban) {
         if (ban.permanent) {
-          return reply.status(403).send({
-            message: "You are permanently banned from this group",
-          });
+          return reply.status(errors.forbidden().statusCode).send({ message: errors.forbidden("You are permanently banned from this group").message });
         }
 
         const lockoutEnds = addHours(ban.createdAt, config.lockoutHours);
 
         if (isBefore(new Date(), lockoutEnds)) {
-          return reply.status(403).send({
-            message: `You must wait ${config.lockoutHours} hours before rejoining this group`,
-            retryAt: lockoutEnds,
-          });
+          return reply
+            .status(errors.forbidden().statusCode)
+            .send({ message: errors.forbidden(`You must wait ${config.lockoutHours} hours before rejoining this group`).message, retryAt: lockoutEnds });
         }
 
         // Cooldown expired — lift temporary ban
@@ -272,7 +270,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
         });
 
         if (existingRequest && existingRequest.status === GroupStatus.PENDING) {
-          return reply.status(409).send({ message: "Join request already pending" });
+          return reply.status(errors.conflict().statusCode).send({ message: errors.conflict("Join request already pending").message });
         }
 
         await prisma.joinRequest.upsert({
@@ -324,13 +322,13 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!membership) {
-        return reply.status(403).send({ message: "You are not a member of this group" });
+        return reply.status(errors.notFound().statusCode).send({ message: errors.notFound("You are not a member of this group").message });
       }
 
       if (membership.role === GroupRole.OWNER) {
-        return reply.status(400).send({
-          message: "You must transfer ownership before leaving the group",
-        });
+        return reply
+          .status(errors.badRequest().statusCode)
+          .send({ message: errors.badRequest("You must transfer ownership before leaving the group").message });
       }
 
       // Delete from GroupMember
@@ -393,7 +391,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!requestExists || requestExists.status !== GroupStatus.PENDING) {
-        return reply.status(404).send({ message: "No pending request found" });
+        return reply.status(errors.notFound().statusCode).send({ message: errors.notFound("No pending request found").message });
       }
 
       await prisma.$transaction([
@@ -446,7 +444,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!requestExists || requestExists.status !== GroupStatus.PENDING) {
-        return reply.status(404).send({ message: "No pending request found" });
+        return reply.status(errors.notFound().statusCode).send({ message: errors.notFound("No pending request found").message });
       }
 
       await prisma.joinRequest.update({
@@ -497,11 +495,11 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!target) {
-        return reply.status(404).send({ message: "Target user is not a member of this group" });
+        return reply.status(errors.notFound().statusCode).send({ message: errors.notFound("Target user is not a member of this group").message });
       }
 
       if (target.role === GroupRole.OWNER) {
-        return reply.status(403).send({ message: "You cannot ban the owner of the group" });
+        return reply.status(errors.forbidden().statusCode).send({ message: errors.forbidden("You cannot ban the owner of the group").message });
       }
 
       await prisma.$transaction([
@@ -559,7 +557,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
 
       const group = await prisma.group.findUnique({ where: { id: groupId } });
       if (!group || group.ownerId !== actingUserId) {
-        return reply.status(403).send({ message: "Only the owner can promote members to admin" });
+        return reply.status(errors.forbidden().statusCode).send({ message: errors.forbidden("Only the owner can promote members to admin").message });
       }
 
       const member = await prisma.groupMember.findUnique({
@@ -567,11 +565,11 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!member) {
-        return reply.status(404).send({ message: "User is not a member of the group" });
+        return reply.status(errors.notFound().statusCode).send({ message: errors.notFound("User is not a member of the group").message });
       }
 
       if (member.role === GroupRole.OWNER || member.role === GroupRole.ADMIN) {
-        return reply.status(400).send({ message: "User is already an admin or owner" });
+        return reply.status(errors.badRequest().statusCode).send({ message: errors.badRequest("User is already an admin or owner").message });
       }
 
       await prisma.groupMember.update({
@@ -609,7 +607,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
 
       const group = await prisma.group.findUnique({ where: { id: groupId } });
       if (!group || group.ownerId !== actingUserId) {
-        return reply.status(403).send({ message: "Only the owner can transfer ownership" });
+        return reply.status(errors.forbidden().statusCode).send({ message: errors.forbidden("Only the owner can transfer ownership").message });
       }
 
       const target = await prisma.groupMember.findUnique({
@@ -617,7 +615,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!target) {
-        return reply.status(404).send({ message: "Target user is not a group member" });
+        return reply.status(errors.notFound().statusCode).send({ message: errors.notFound("Target user is not a group member").message });
       }
 
       await prisma.$transaction([
@@ -664,7 +662,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!membership) {
-        return reply.status(403).send({ message: "You are not a member of this group" });
+        return reply.status(errors.forbidden().statusCode).send({ message: errors.forbidden("You are not a member of this group").message });
       }
 
       const members = await prisma.groupMember.findMany({
@@ -768,18 +766,18 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!group) {
-        return reply.status(404).send({ message: "Group not found" });
+        return reply.status(errors.notFound().statusCode).send({ message: errors.notFound("Group not found").message });
       }
 
       if (group.ownerId !== userId) {
-        return reply.status(403).send({ message: "Only the group owner can delete this group" });
+        return reply.status(errors.forbidden().statusCode).send({ message: errors.forbidden("Only the group owner can delete this group").message });
       }
 
       const memberCount = group.members.length;
 
       if (memberCount > 1) {
-        return reply.status(400).send({
-          message: "You must remove all other members before deleting the group",
+        return reply.status(errors.badRequest().statusCode).send({
+          message: errors.badRequest("You must remove all other members before deleting the group").message,
         });
       }
 
@@ -819,7 +817,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
     });
 
     if (!isMember) {
-      return reply.code(403).send({ message: "You are not a member of this group" });
+      return reply.code(errors.forbidden().statusCode).send({ message: errors.forbidden("You are not a member of this group").message });
     }
 
     const messages = await prisma.groupMessage.findMany({
@@ -882,7 +880,7 @@ export default async function groupRoutes(fastify: FastifyInstance) {
       });
 
       if (!isMember) {
-        return reply.code(403).send({ message: "You are not a member of this group" });
+        return reply.code(errors.forbidden().statusCode).send({ message: errors.forbidden("You are not a member of this group").message });
       }
 
       const encrypted = encrypt(content);
